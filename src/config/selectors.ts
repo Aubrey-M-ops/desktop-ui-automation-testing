@@ -43,7 +43,8 @@ export const SELECTORS = {
   },
 
   customerProfile: {
-    root: 'customer-profile',
+    root:        'customer-profile',
+    unavailable: 'customer-profile-unavailable',
     // Scalar fields — keys match ProfileInfo field names for dynamic iteration
     fields: {
       customerName:      'customer-name',

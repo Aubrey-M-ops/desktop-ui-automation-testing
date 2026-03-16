@@ -40,6 +40,10 @@ export class DesktopPage {
     return this.page.locator(`[data-testid^="${prefix}-"]`);
   }
 
+  private byCss(selector: string): Locator {
+    return this.page.locator(selector);
+  }
+
   // ── Navigation ────────────────────────────────────────────────────────────
 
   /**
@@ -55,7 +59,31 @@ export class DesktopPage {
 
   /** Wait for the initial agent-status element to become visible. */
   async waitForAgentStatus() {
-    await expect(this.byTestId(SELECTORS.entryFlow.agentStatus)).toBeVisible();
+    const statusSelect = this.byTestId(SELECTORS.header.agentStatusSelect);
+    await expect(statusSelect).toBeVisible();
+    await expect(statusSelect.locator('option')).toHaveCount(3);
+  }
+
+  async setAgentStatus(label: 'Ready' | 'Not Ready' | 'Offline') {
+    const statusSelect = this.byTestId(SELECTORS.header.agentStatusSelect);
+    await expect(statusSelect).toBeVisible();
+    await statusSelect.selectOption({ label });
+  }
+
+  async setAgentStatusReady() {
+    await this.setAgentStatus('Ready');
+  }
+
+  async waitForWorkspaceGated() {
+    await expect(this.byTestId(SELECTORS.entryFlow.workspaceGated)).toBeVisible();
+  }
+
+  async isWorkspaceGatedVisible(): Promise<boolean> {
+    return this.byTestId(SELECTORS.entryFlow.workspaceGated).isVisible();
+  }
+
+  async isChatInviteVisible(): Promise<boolean> {
+    return this.byTestId(SELECTORS.entryFlow.chatInvite).isVisible();
   }
 
   /** Wait for the chat invite banner and click "Accept". */
@@ -86,6 +114,22 @@ export class DesktopPage {
 
   async isProfileVisible(): Promise<boolean> {
     return this.byTestId(SELECTORS.customerProfile.root).isVisible();
+  }
+
+  async isProfilePlaceholderVisible(): Promise<boolean> {
+    return this.byTestId(SELECTORS.customerProfile.unavailable).isVisible();
+  }
+
+  async openInteractionInformationTab() {
+    await this.byTestId(SELECTORS.tabs.interactionInformation).click();
+  }
+
+  async openCustomerProfileTab() {
+    await this.byTestId(SELECTORS.tabs.customerProfile).click();
+  }
+
+  async isInteractionInformationVisible(): Promise<boolean> {
+    return this.byTestId(SELECTORS.interactionInfo.section).isVisible();
   }
 
   async getProfileData(): Promise<ProfileInfo> {
@@ -151,6 +195,18 @@ export class DesktopPage {
     await this.byTestId(sc.send).click();
   }
 
+  async fillChatInput(text: string) {
+    await this.byTestId(SELECTORS.liveChat.input).fill(text);
+  }
+
+  async clearLiveChatInput() {
+    await this.byTestId(SELECTORS.liveChat.input).fill('');
+  }
+
+  async isSendButtonDisabled(): Promise<boolean> {
+    return this.byTestId(SELECTORS.liveChat.send).isDisabled();
+  }
+
   async getLastAgentMessage(): Promise<string> {
     const agentMessages = this.byTestId(SELECTORS.liveChat.messageAgent);
     const count = await agentMessages.count();
@@ -161,6 +217,20 @@ export class DesktopPage {
     const customerMessages = this.byTestId(SELECTORS.liveChat.messageCustomer);
     const count = await customerMessages.count();
     return customerMessages.nth(count - 1).innerText();
+  }
+
+  async waitForDisconnectSystemMessage() {
+    await expect(this.page.getByText(SELECTORS.liveChat.disconnectMessageText)).toBeVisible();
+  }
+
+  async hasDisconnectSystemMessage(): Promise<boolean> {
+    return this.page.getByText(SELECTORS.liveChat.disconnectMessageText).isVisible();
+  }
+
+  async getLastAgentTimestamp(): Promise<string> {
+    const lastAgentMessageText = await this.getLastAgentMessage();
+    const matches = lastAgentMessageText.match(/\b\d{2}:\d{2}:\d{2}\b/g);
+    return matches?.at(-1) ?? '';
   }
 
   async getLiveChatCounts(): Promise<{ agent: number; customer: number }> {
@@ -175,7 +245,7 @@ export class DesktopPage {
   // ── Badge ─────────────────────────────────────────────────────────────────
 
   async getBadgeCount(): Promise<number> {
-    const badge = this.byTestId(SELECTORS.badge.count);
+    const badge = this.byCss(SELECTORS.badge.css).first();
     const text = await badge.innerText();
     return parseInt(text.trim(), 10);
   }

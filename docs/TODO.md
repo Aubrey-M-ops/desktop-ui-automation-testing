@@ -1,0 +1,5 @@
+- [ ] 生成DesktopPage.ts  Entry flow 的流程图
+- [ ] 整个项目的所有操作，有没有现成的package可以引入，来代替手动实现
+- [ ] UI Workflow检查补充一下注释，现在太密了
+- [ ] Selector.ts补充注释
+- [ ] interface拆分出来到types
