@@ -1,5 +1,7 @@
 /**
- * Create a TestRun
+ * Wraps POST /api/testrun.
+ * Call createTestRun(request, payload) to create a deterministic test run.
+ * Returns { runId, createdAt, desktopPath } on success, or fails the test immediately if the response is not OK.
  */
 import { APIRequestContext, expect } from "@playwright/test";
 
@@ -13,35 +15,38 @@ export interface TranscriptMessage {
   message: string;
 }
 
+/** Interaction metadata submitted in the payload and displayed on the desktop. */
+export interface InteractionInfo {
+  /** Unique identifier for this chat interaction, e.g. "CHAT-10001". */
+  interactionId: string;
+  /** Communication channel, e.g. "Chat". */
+  channel: string;
+  /**
+   * Whether the customer has been verified.
+   * Use "Authenticated" to trigger automatic profile resolution;
+   * "Not Authenticated" renders a profile placeholder instead.
+   */
+  authenticationStatus: "Authenticated" | "Not Authenticated";
+  /**
+   * Sample account number used to resolve the customer profile.
+   * Must be in the range 10001–10050 for authenticated runs.
+   * Leave empty string for unauthenticated runs.
+   */
+  customerAccountNumber: string;
+  /** Name of the customer journey that routed this interaction, e.g. "Billing Support". */
+  journeyName: string;
+  /** Name of the queue the interaction was assigned to, e.g. "Billing Tier 1". */
+  queueName: string;
+  //TODO: any enum for connection state?
+  /** Current agent desktop connection state, e.g. "Connected". */
+  agentDesktopStatus: string;
+  /** ISO 8601 timestamp when the interaction started, e.g. "2026-03-11T10:30:00Z". */
+  startTime: string;
+}
+
 /** Request body type (interaction info + chat transcript) */
 export interface TestRunPayload {
-  interactionInformation: {
-    /** Unique identifier for this chat interaction, e.g. "CHAT-10001". */
-    interactionId: string;
-    /** Communication channel, e.g. "Chat". */
-    channel: string;
-    /**
-     * Whether the customer has been verified.
-     * Use "Authenticated" to trigger automatic profile resolution;
-     * "Not Authenticated" renders a profile placeholder instead.
-     */
-    authenticationStatus: "Authenticated" | "Not Authenticated";
-    /**
-     * Sample account number used to resolve the customer profile.
-     * Must be in the range 10001–10050 for authenticated runs.
-     * Leave empty string for unauthenticated runs.
-     */
-    customerAccountNumber: string;
-    /** Name of the customer journey that routed this interaction, e.g. "Billing Support". */
-    journeyName: string;
-    /** Name of the queue the interaction was assigned to, e.g. "Billing Tier 1". */
-    queueName: string;
-    //TODO: any enum for connection state?
-    /** Current agent desktop connection state, e.g. "Connected". */
-    agentDesktopStatus: string;
-    /** ISO 8601 timestamp when the interaction started, e.g. "2026-03-11T10:30:00Z". */
-    startTime: string;
-  };
+  interactionInformation: InteractionInfo;
   /** Pre-existing conversation history to display after chat acceptance. */
   chatTranscript: TranscriptMessage[];
 }
@@ -56,8 +61,13 @@ export interface TestRunResponse {
   desktopPath: string;
 }
 
-/** Create a testrun: Sends POST /api/testrun and returns the parsed response.
- * Fails the test immediately if the response is not OK. */
+/**
+ * Sends POST /api/testrun and returns the parsed response.
+ * Fails the test immediately if the response is not OK.
+ * @param request - Playwright APIRequestContext, injected via test fixture
+ * @param payload - Interaction information and chat transcript to seed the run
+ * @returns Parsed response containing runId, createdAt, and desktopPath
+ */
 export async function createTestRun(
   request: APIRequestContext,
   payload: TestRunPayload,
