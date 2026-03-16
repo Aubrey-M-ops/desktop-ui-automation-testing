@@ -1,5 +1,13 @@
 import type { InteractionInfo } from '@src/api/testrun';
 
+type ProfileFieldKey =
+  | 'customerName'
+  | 'accountNumber'
+  | 'customerTier'
+  | 'accountStatus'
+  | 'lastPaymentDate'
+  | 'preferredLanguage';
+
 export const SELECTORS = {
   header: {
     root:              'desktop-header',
@@ -39,11 +47,12 @@ export const SELECTORS = {
     // Scalar fields — keys match ProfileInfo field names for dynamic iteration
     fields: {
       customerName:      'customer-name',
+      accountNumber:     'customer-account-number',
       customerTier:      'customer-tier',
       accountStatus:     'account-status',
       lastPaymentDate:   'last-payment-date',
       preferredLanguage: 'preferred-language',
-    },
+    } satisfies Record<ProfileFieldKey, string>,
     // Transaction rows are indexed: transaction-row-0, transaction-row-1, ...
     // Individual cells have no testid — parsed from innerText by position (order must match the DOM)
     transactionRowPrefix: 'transaction-row',
@@ -67,9 +76,10 @@ export const SELECTORS = {
     send:            'agent-chat-send',
     messageAgent:    'chat-message-agent',
     messageCustomer: 'chat-message-customer',
+    disconnectMessageText: 'Chat disconnected unexpectedly.',
   },
 
   badge: {
-    count: 'message-badge',
+    css: '.panel-badge',
   },
 } as const;
