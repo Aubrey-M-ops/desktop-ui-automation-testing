@@ -17,6 +17,7 @@ export interface TranscriptEntry {
 
 export interface ProfileInfo {
   customerName: string;
+  accountNumber: string;
   customerTier: string;
   accountStatus: string;
   lastPaymentDate: string;
@@ -24,12 +25,19 @@ export interface ProfileInfo {
   recentTransactions: Array<{ date: string; description: string; amount: string }>;
 }
 
-
 export class DesktopPage {
   readonly page: Page;
 
   constructor(page: Page) {
     this.page = page;
+  }
+
+  private byTestId(testId: string): Locator {
+    return this.page.locator(testIdToSelector(testId));
+  }
+
+  private byTestIdPrefix(prefix: string): Locator {
+    return this.page.locator(`[data-testid^="${prefix}-"]`);
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -47,20 +55,20 @@ export class DesktopPage {
 
   /** Wait for the initial agent-status element to become visible. */
   async waitForAgentStatus() {
-    await this.page.waitForSelector(testIdToSelector(SELECTORS.entryFlow.agentStatus), { state: 'visible' });
+    await expect(this.byTestId(SELECTORS.entryFlow.agentStatus)).toBeVisible();
   }
 
   /** Wait for the chat invite banner and click "Accept". */
   async acceptChatInvite() {
-    await this.page.waitForSelector(testIdToSelector(SELECTORS.entryFlow.chatInvite), { state: 'visible' });
-    await this.page.click(testIdToSelector(SELECTORS.entryFlow.chatInviteAccept));
+    await expect(this.byTestId(SELECTORS.entryFlow.chatInvite)).toBeVisible();
+    await this.byTestId(SELECTORS.entryFlow.chatInviteAccept).click();
   }
 
   // ── Interaction Information (UI Text)───────────────────────────────────────────────
 
   /** Locates an element by its data-testid attribute and returns its visible text content. */
   private fieldText(testId: string): Promise<string> {
-    return this.page.locator(testIdToSelector(testId)).innerText();
+    return this.byTestId(testId).innerText();
   }
 
   /** Reads each field defined in SELECTORS.interactionInfo.fields from the page, returning their innerText as a structured object. */
@@ -77,8 +85,7 @@ export class DesktopPage {
   // ── Customer Profile ──────────────────────────────────────────────────────
 
   async isProfileVisible(): Promise<boolean> {
-    const locator = this.page.locator(testIdToSelector(SELECTORS.customerProfile.root));
-    return locator.isVisible();
+    return this.byTestId(SELECTORS.customerProfile.root).isVisible();
   }
 
   async getProfileData(): Promise<ProfileInfo> {
@@ -95,7 +102,7 @@ export class DesktopPage {
     const recentTransactions: ProfileInfo['recentTransactions'] = [];
     let i = 0;
     while (true) {
-      const row = this.page.locator(testIdToSelector(`${sp.transactionRowPrefix}-${i}`));
+      const row = this.byTestId(`${sp.transactionRowPrefix}-${i}`);
       if (await row.count() === 0) break;
       const parts = (await row.innerText()).split('\n');
       const entry = Object.fromEntries(sp.transactionRowFields.map((field, i) => [field, parts[i]]));
@@ -118,11 +125,11 @@ export class DesktopPage {
     // Messages are indexed (transcript-message-0, transcript-message-1, …)
     let i = 0;
     while (true) {
-      const msg = this.page.locator(testIdToSelector(`${st.messagePrefix}-${i}`));
+      const msg = this.byTestId(`${st.messagePrefix}-${i}`);
       if (await msg.count() === 0) break;
       const fieldEntries = await Promise.all(
         Object.entries(st.fields).map(async ([key, prefix]) =>
-          [key, await this.page.locator(testIdToSelector(`${prefix}-${i}`)).innerText()] as const
+          [key, await this.byTestId(`${prefix}-${i}`).innerText()] as const
         )
       );
       messages.push(Object.fromEntries(fieldEntries) as unknown as TranscriptEntry);
@@ -133,36 +140,42 @@ export class DesktopPage {
   }
 
   async getTranscriptCount(): Promise<number> {
-    const st = SELECTORS.transcript;
-    let i = 0;
-    while (await this.page.locator(testIdToSelector(`${st.messagePrefix}-${i}`)).count() > 0) i++;
-    return i;
+    return this.byTestIdPrefix(SELECTORS.transcript.messagePrefix).count();
   }
 
   // ── Live Chat ─────────────────────────────────────────────────────────────
 
   async sendLiveChatMessage(text: string) {
     const sc = SELECTORS.liveChat;
-    await this.page.locator(testIdToSelector(sc.input)).fill(text);
-    await this.page.click(testIdToSelector(sc.send));
+    await this.byTestId(sc.input).fill(text);
+    await this.byTestId(sc.send).click();
   }
 
   async getLastAgentMessage(): Promise<string> {
-    const agentMessages = this.page.locator(testIdToSelector(SELECTORS.liveChat.messageAgent));
+    const agentMessages = this.byTestId(SELECTORS.liveChat.messageAgent);
     const count = await agentMessages.count();
     return agentMessages.nth(count - 1).innerText();
   }
 
   async getLastCustomerMessage(): Promise<string> {
-    const customerMessages = this.page.locator(testIdToSelector(SELECTORS.liveChat.messageCustomer));
+    const customerMessages = this.byTestId(SELECTORS.liveChat.messageCustomer);
     const count = await customerMessages.count();
     return customerMessages.nth(count - 1).innerText();
+  }
+
+  async getLiveChatCounts(): Promise<{ agent: number; customer: number }> {
+    const [agent, customer] = await Promise.all([
+      this.byTestId(SELECTORS.liveChat.messageAgent).count(),
+      this.byTestId(SELECTORS.liveChat.messageCustomer).count(),
+    ]);
+
+    return { agent, customer };
   }
 
   // ── Badge ─────────────────────────────────────────────────────────────────
 
   async getBadgeCount(): Promise<number> {
-    const badge = this.page.locator(testIdToSelector(SELECTORS.badge.count));
+    const badge = this.byTestId(SELECTORS.badge.count);
     const text = await badge.innerText();
     return parseInt(text.trim(), 10);
   }
@@ -171,20 +184,20 @@ export class DesktopPage {
 
   /** Wait until the transcript shows exactly `n` messages. */
   async waitForTranscriptCount(n: number) {
-    await expect(this.page.locator(`[data-testid^="${SELECTORS.transcript.messagePrefix}-"]`)).toHaveCount(n);
+    await expect(this.byTestIdPrefix(SELECTORS.transcript.messagePrefix)).toHaveCount(n);
   }
 
   /** Wait for the profile panel to show the expected customer name. */
   async waitForProfile(expectedName: string) {
-    await expect(this.page.locator(testIdToSelector(SELECTORS.customerProfile.fields.customerName))).toContainText(expectedName);
+    await expect(this.byTestId(SELECTORS.customerProfile.fields.customerName)).toContainText(expectedName);
   }
-
 
   /**
    * After the agent sends a message, the system generates one echo customer
    * reply. Wait until the live-chat area reaches prevCount + 2.
    */
-  async waitForEchoReply(prevCount: number) {
-    await expect(this.page.locator(testIdToSelector(SELECTORS.liveChat.messageCustomer))).toHaveCount(prevCount + 1);
+  async waitForEchoReply(previousCounts: { agent: number; customer: number }) {
+    await expect(this.byTestId(SELECTORS.liveChat.messageAgent)).toHaveCount(previousCounts.agent + 1);
+    await expect(this.byTestId(SELECTORS.liveChat.messageCustomer)).toHaveCount(previousCounts.customer + 1);
   }
 }
