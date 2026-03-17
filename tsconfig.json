@@ -14,6 +14,6 @@
       "@src/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "tests/**/*", "playwright.config.ts"],
+  "include": ["src/**/*", "tests/**/*", "test-data/**/*", "playwright.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

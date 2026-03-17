@@ -14,6 +14,7 @@ const DESKTOP_BASE = process.env.DESKTOP_PATH ?? '/desktop';
 
 interface ProfileFixture {
   customerName: string;
+  accountNumber?: string;
   recentTransactions: Array<{ date: string; description: string; amount: string }>;
 }
 
@@ -59,14 +60,14 @@ test.describe('02 - Edge cases', () => {
       await expect.poll(() => desktop.isChatInviteVisible()).toBe(true);
     });
 
-    test('TC-03 Offline to Not Ready unexpectedly triggers the chat invite (Bug #6)', async ({ page, request }) => {
+    test('TC-03 Chat invite remains hidden when agent moves from Offline to Not Ready', async ({ page, request }) => {
       const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await desktop.setAgentStatus('Offline');
       await expect.poll(() => desktop.isChatInviteVisible()).toBe(false);
 
       await desktop.setAgentStatus('Not Ready');
-      await expect.poll(() => desktop.isChatInviteVisible()).toBe(true);
+      await expect.poll(() => desktop.isChatInviteVisible()).toBe(false);
     });
   });
 
@@ -172,7 +173,7 @@ test.describe('02 - Edge cases', () => {
       await expect.poll(() => desktop.getTranscriptMessages()).toEqual(defaultTranscript);
     });
 
-    test('TC-10 Transaction list is truncated at 10 rows (Bug #5, account 10012)', async ({ page, request }) => {
+    test('TC-10 Customer profile transaction list renders the expected rows', async ({ page, request }) => {
       const account = '10012';
       const profile = await readLocalJson<ProfileFixture>('test-data/profiles/10012.json');
       const payload: TestRunPayload = {
@@ -200,7 +201,7 @@ test.describe('02 - Edge cases', () => {
   });
 
   test.describe('E. Live chat composer', () => {
-    test('TC-11 Agent message timestamp is rendered as 00:xx:xx (Bug #3)', async ({ page, request }) => {
+    test('TC-11 Agent message shows a valid HH:MM:SS timestamp after send', async ({ page, request }) => {
       const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
@@ -211,7 +212,7 @@ test.describe('02 - Edge cases', () => {
 
       const transcript = await desktop.getTranscriptMessages();
       expect(transcript[beforeSend].sender).toBe('Agent');
-      expect(transcript[beforeSend].timestamp).toMatch(/^00:\d{2}:\d{2}$/);
+      expect(transcript[beforeSend].timestamp).toMatch(/^\d{2}:\d{2}:\d{2}$/);
     });
 
     test('TC-12 Send button is disabled for empty input', async ({ page, request }) => {
@@ -288,7 +289,58 @@ test.describe('02 - Edge cases', () => {
   });
 
   test.describe('G. API contract validation', () => {
-    test('TC-18 Invalid payload returns a 4xx validation error', async ({ request }) => {
+    test('TC-18 Authenticated runs accept the upper-bound sample profile account 10050', async ({ page, request }) => {
+      const account = '10050';
+      const profile = await fetchJson<ProfileFixture>(request, `/sampleprofile/${account}.json`);
+      const payload: TestRunPayload = {
+        interactionInformation: {
+          interactionId: `CHAT-BOUNDARY-${account}`,
+          channel: 'Chat',
+          authenticationStatus: 'Authenticated',
+          customerAccountNumber: account,
+          journeyName: 'General Support',
+          queueName: 'General',
+          agentDesktopStatus: 'Connected',
+          startTime: '2026-03-11T10:00:00Z',
+        },
+        chatTranscript: [{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }],
+      };
+      const desktop = await openDesktopWithRun(page, request, payload);
+
+      await readyAndAccept(desktop);
+      await desktop.openCustomerProfileTab();
+      await desktop.waitForProfile(profile.customerName);
+
+      const renderedProfile = await desktop.getProfileData();
+      expect(renderedProfile.customerName).toBe(profile.customerName);
+      expect(renderedProfile.accountNumber).toBe(account);
+    });
+
+    test('TC-19 Authenticated runs reject sample profile accounts outside 10001-10050', async ({ request }) => {
+      const response = await request.post('/api/testrun', {
+        data: {
+          interactionInformation: {
+            interactionId: 'CHAT-OUT-OF-RANGE-10051',
+            channel: 'Chat',
+            authenticationStatus: 'Authenticated',
+            customerAccountNumber: '10051',
+            journeyName: 'General Support',
+            queueName: 'General',
+            agentDesktopStatus: 'Connected',
+            startTime: '2026-03-11T10:00:00Z',
+          },
+          chatTranscript: [{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }],
+        } satisfies TestRunPayload,
+      });
+
+      expect(response.status()).toBeGreaterThanOrEqual(400);
+      expect(response.status()).toBeLessThan(500);
+
+      const body = await response.json();
+      expect(body).toHaveProperty('message');
+    });
+
+    test('TC-20 Invalid payload returns a 4xx validation error', async ({ request }) => {
       const response = await request.post('/api/testrun', {
         data: { interactionInformation: {} },
       });

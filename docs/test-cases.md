@@ -1,6 +1,6 @@
 # Test Cases
 
-Total: 18 test cases across 7 modules.
+Total: 20 test cases across 7 modules.
 
 ---
 
@@ -42,20 +42,19 @@ Total: 18 test cases across 7 modules.
 3. Switch agent status to `Offline` and `Not Ready`, confirming invite stays hidden
 4. Switch to `Ready` and assert invite appears
 
-### TC-03: Offline to Not Ready unexpectedly triggers the chat invite (Bug #6)
+### TC-03: Chat invite remains hidden when agent moves from Offline to Not Ready
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
 | **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
 | **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
-| **Related Bug** | Bug #6 |
 
 **Steps:**
 1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
 2. Set agent status to `Offline` and assert invite is hidden
 3. Set agent status to `Not Ready`
-4. Assert invite becomes visible to reproduce the bug
+4. Assert invite remains hidden
 
 ---
 
@@ -156,7 +155,7 @@ Total: 18 test cases across 7 modules.
 4. POST `/api/testrun`, unlock the workspace, and accept the invite
 5. Assert rendered transcript equals `defaultTranscript`
 
-### TC-10: Transaction list is truncated at 10 rows (Bug #5, account 10012)
+### TC-10: Customer profile transaction list renders the expected rows
 
 | | |
 |---|---|
@@ -164,7 +163,6 @@ Total: 18 test cases across 7 modules.
 | **Test Data** | inline payload built inside the test |
 | **Profile Assertion Data** | local file `test-data/profiles/10012.json` (`Ethan Perry`, account `10012`, 23 recent transactions) |
 | **Transcript Data** | inline transcript with 1 message: `{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }` |
-| **Related Bug** | Bug #5 |
 
 **Steps:**
 1. Read `test-data/profiles/10012.json`
@@ -177,7 +175,7 @@ Total: 18 test cases across 7 modules.
 
 ## Module E - Live Chat Composer
 
-### TC-11: Agent message timestamp is rendered as 00:xx:xx (Bug #3)
+### TC-11: Agent message shows a valid HH:MM:SS timestamp after send
 
 | | |
 |---|---|
@@ -185,13 +183,12 @@ Total: 18 test cases across 7 modules.
 | **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
 | **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
 | **Live Chat Input** | `Checking your account now.` |
-| **Related Bug** | Bug #3 |
 
 **Steps:**
 1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
 2. Unlock the workspace and accept the invite
 3. Send `Checking your account now.`
-4. Assert the appended agent message timestamp matches `/^00:\\d{2}:\\d{2}$/`
+4. Assert the appended agent message timestamp matches `/^\\d{2}:\\d{2}:\\d{2}$/`
 
 ### TC-12: Send button is disabled for empty input
 
@@ -292,7 +289,38 @@ Total: 18 test cases across 7 modules.
 
 ## Module G - API Contract Validation
 
-### TC-18: Invalid payload returns a 4xx validation error
+### TC-18: Authenticated runs accept the upper-bound sample profile account 10050
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | inline payload built inside the test |
+| **Profile Source** | GET `/sampleprofile/10050.json` -> assigned to `profile` |
+| **Transcript Data** | inline transcript with 1 message: `{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }` |
+| **Interaction Data** | inline `interactionInformation` with account `10050`, `interactionId: 'CHAT-BOUNDARY-10050'`, journey `General Support`, queue `General` |
+
+**Steps:**
+1. GET `/sampleprofile/10050.json`
+2. Build an inline authenticated `TestRunPayload` for account `10050`
+3. POST `/api/testrun`, unlock the workspace, and accept the invite
+4. Open Customer Profile and wait for the fetched `profile.customerName`
+5. Assert rendered profile uses account `10050`
+
+### TC-19: Authenticated runs reject sample profile accounts outside 10001-10050
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | inline payload with authenticated account `10051` |
+| **Transcript Data** | inline transcript with 1 message: `{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }` |
+| **API Expectation** | response status is `>= 400` and `< 500`, and body contains `message` |
+
+**Steps:**
+1. POST `/api/testrun` with authenticated account `10051`
+2. Assert response status is a 4xx
+3. Assert response JSON contains `message`
+
+### TC-20: Invalid payload returns a 4xx validation error
 
 | | |
 |---|---|
