@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **File** | `tests/01-happy-path.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/scenarios/happy-path.ts` |
 | **Profile Assertion Data** | local file `test-data/profiles/10001.json` |
 | **Transcript Data** | 3 messages in payload |
 

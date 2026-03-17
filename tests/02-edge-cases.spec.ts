@@ -1,13 +1,21 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { createTestRun, type TestRunPayload, type TranscriptMessage } from '../src/api/testrun';
+import { createTestRun, type TestRunPayload, type TranscriptMessage } from '@src/api/testrun';
 import {
+  buildAccountTranscriptPayload,
+  buildDefaultTranscriptPayload,
+  INVALID_INTERACTION_INFO_PAYLOAD,
   LARGE_CONVERSATION_TRANSCRIPT,
+  PAYLOAD_BOUNDARY_ACCOUNT_10050,
+  PAYLOAD_EMPTY_TRANSCRIPT_10001,
   PAYLOAD_HAPPY_PATH,
   PAYLOAD_LARGE_CONVERSATION,
+  PAYLOAD_MINIMAL_PROFILE_10001,
+  PAYLOAD_OUT_OF_RANGE_ACCOUNT_10051,
+  PAYLOAD_TRANSACTION_PROFILE_10012,
   PAYLOAD_UNAUTHENTICATED,
-} from '../test-data';
-import { DesktopPage } from '../src/pages/DesktopPage';
-import { profile10001, profile10012, type ProfileFixture } from '../test-data/profiles';
+} from '@test-data';
+import { DesktopPage } from '@src/pages/DesktopPage';
+import { profile10001, profile10012, type ProfileFixture } from '@test-data/profiles';
 
 const DESKTOP_BASE = process.env.DESKTOP_PATH ?? '/desktop';
 
@@ -129,19 +137,7 @@ test.describe('02 - Edge cases', () => {
     test('TC-09 Account-specific transcript file is rendered when available', async ({ page, request }) => {
       const account = '10003';
       const expectedTranscript = await fetchJson<TranscriptMessage[]>(request, `/sampletranscription/${account}.json`);
-      const payload: TestRunPayload = {
-        interactionInformation: {
-          interactionId: `CHAT-TRANSCRIPT-${account}`,
-          channel: 'Chat',
-          authenticationStatus: 'Authenticated',
-          customerAccountNumber: account,
-          journeyName: 'General Support',
-          queueName: 'General',
-          agentDesktopStatus: 'Connected',
-          startTime: '2026-03-11T10:00:00Z',
-        },
-        chatTranscript: expectedTranscript,
-      };
+      const payload = buildAccountTranscriptPayload(account, expectedTranscript);
       const desktop = await openDesktopWithRun(page, request, payload);
 
       await readyAndAccept(desktop);
@@ -155,19 +151,7 @@ test.describe('02 - Edge cases', () => {
       expect(specificRes.status()).toBe(404);
 
       const defaultTranscript = await fetchJson<TranscriptMessage[]>(request, '/sampletranscription/default.json');
-      const payload: TestRunPayload = {
-        interactionInformation: {
-          interactionId: `CHAT-TRANSCRIPT-DEFAULT-${account}`,
-          channel: 'Chat',
-          authenticationStatus: 'Authenticated',
-          customerAccountNumber: account,
-          journeyName: 'General Support',
-          queueName: 'General',
-          agentDesktopStatus: 'Connected',
-          startTime: '2026-03-11T10:00:00Z',
-        },
-        chatTranscript: defaultTranscript,
-      };
+      const payload = buildDefaultTranscriptPayload(account, defaultTranscript);
       const desktop = await openDesktopWithRun(page, request, payload);
 
       await readyAndAccept(desktop);
@@ -176,22 +160,8 @@ test.describe('02 - Edge cases', () => {
     });
 
     test('TC-11 Customer profile transaction list renders the expected rows', async ({ page, request }) => {
-      const account = '10012';
       const profile = profile10012;
-      const payload: TestRunPayload = {
-        interactionInformation: {
-          interactionId: 'CHAT-TX-TRUNC',
-          channel: 'Chat',
-          authenticationStatus: 'Authenticated',
-          customerAccountNumber: account,
-          journeyName: 'Account Inquiry',
-          queueName: 'General Support',
-          agentDesktopStatus: 'Connected',
-          startTime: '2026-03-11T10:00:00Z',
-        },
-        chatTranscript: [{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }],
-      };
-      const desktop = await openDesktopWithRun(page, request, payload);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_TRANSACTION_PROFILE_10012);
 
       await readyAndAccept(desktop);
       await desktop.openCustomerProfileTab();
@@ -202,20 +172,7 @@ test.describe('02 - Edge cases', () => {
     });
 
     test('TC-12 Customer profile loads with a non-empty customerName', async ({ page, request }) => {
-      const payload: TestRunPayload = {
-        interactionInformation: {
-          interactionId: 'CHAT-MINIMAL-PROFILE',
-          channel: 'Chat',
-          authenticationStatus: 'Authenticated',
-          customerAccountNumber: '10001',
-          journeyName: 'General Support',
-          queueName: 'General',
-          agentDesktopStatus: 'Connected',
-          startTime: '2026-03-11T10:00:00Z',
-        },
-        chatTranscript: [{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }],
-      };
-      const desktop = await openDesktopWithRun(page, request, payload);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_MINIMAL_PROFILE_10001);
 
       await readyAndAccept(desktop);
       await desktop.openCustomerProfileTab();
@@ -335,20 +292,7 @@ test.describe('02 - Edge cases', () => {
     test('TC-21 Authenticated runs accept the upper-bound sample profile account 10050', async ({ page, request }) => {
       const account = '10050';
       const profile = await fetchJson<ProfileFixture>(request, `/sampleprofile/${account}.json`);
-      const payload: TestRunPayload = {
-        interactionInformation: {
-          interactionId: `CHAT-BOUNDARY-${account}`,
-          channel: 'Chat',
-          authenticationStatus: 'Authenticated',
-          customerAccountNumber: account,
-          journeyName: 'General Support',
-          queueName: 'General',
-          agentDesktopStatus: 'Connected',
-          startTime: '2026-03-11T10:00:00Z',
-        },
-        chatTranscript: [{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }],
-      };
-      const desktop = await openDesktopWithRun(page, request, payload);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_BOUNDARY_ACCOUNT_10050);
 
       await readyAndAccept(desktop);
       await desktop.openCustomerProfileTab();
@@ -360,19 +304,7 @@ test.describe('02 - Edge cases', () => {
 
     test('TC-22 Authenticated runs reject sample profile accounts outside 10001-10050', async ({ request }) => {
       const response = await request.post('/api/testrun', {
-        data: {
-          interactionInformation: {
-            interactionId: 'CHAT-OUT-OF-RANGE-10051',
-            channel: 'Chat',
-            authenticationStatus: 'Authenticated',
-            customerAccountNumber: '10051',
-            journeyName: 'General Support',
-            queueName: 'General',
-            agentDesktopStatus: 'Connected',
-            startTime: '2026-03-11T10:00:00Z',
-          },
-          chatTranscript: [{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }],
-        } satisfies TestRunPayload,
+        data: PAYLOAD_OUT_OF_RANGE_ACCOUNT_10051,
       });
 
       expect(response.status()).toBeGreaterThanOrEqual(400);
@@ -384,7 +316,7 @@ test.describe('02 - Edge cases', () => {
 
     test('TC-23 Invalid payload returns a 4xx validation error', async ({ request }) => {
       const response = await request.post('/api/testrun', {
-        data: { interactionInformation: {} },
+        data: INVALID_INTERACTION_INFO_PAYLOAD,
       });
 
       expect(response.status()).toBeGreaterThanOrEqual(400);
@@ -398,19 +330,7 @@ test.describe('02 - Edge cases', () => {
       // Bug #4: API currently rejects chatTranscript: [] with "must not be empty".
       // This test documents the bug - it will FAIL until the API is fixed.
       const response = await request.post('/api/testrun', {
-        data: {
-          interactionInformation: {
-            interactionId: 'CHAT-EMPTY-TRANSCRIPT',
-            channel: 'Chat',
-            authenticationStatus: 'Authenticated',
-            customerAccountNumber: '10001',
-            journeyName: 'General Support',
-            queueName: 'General',
-            agentDesktopStatus: 'Connected',
-            startTime: '2026-03-11T10:00:00Z',
-          },
-          chatTranscript: [],
-        } satisfies TestRunPayload,
+        data: PAYLOAD_EMPTY_TRANSCRIPT_10001,
       });
 
       // Expected: API should accept empty transcript (fresh conversation scenario)

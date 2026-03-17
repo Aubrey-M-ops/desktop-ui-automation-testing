@@ -205,7 +205,6 @@ See [bug-report.md](./bug-report.md) for full reproduction steps, expected vs ac
 
 - **Test Specs:** `tests/01-happy-path.spec.ts`, `tests/02-edge-cases.spec.ts`, `tests/03-xss-verification.spec.ts`
 - **Page Object:** `src/pages/DesktopPage.ts`
-- **Test Data:** `test-data/payloads/`, `test-data/profiles/`, `test-data/transcripts/`
+- **Test Data:** `test-data/scenarios/`, `test-data/profiles/`
 - **API Client:** `src/api/testrun.ts`
 - **Config:** `playwright.config.ts`
-

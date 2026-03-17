@@ -1,6 +1,14 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { createTestRun, type TestRunPayload } from '../src/api/testrun';
-import { DesktopPage } from '../src/pages/DesktopPage';
+import { createTestRun, type TestRunPayload } from '@src/api/testrun';
+import {
+  LONG_XSS_MESSAGE,
+  PAYLOAD_LONG_XSS,
+  PAYLOAD_SQL_INJECTION,
+  PAYLOAD_UNICODE,
+  PAYLOAD_XSS_LIVE,
+  PAYLOAD_XSS_PRELOAD,
+} from '@test-data';
+import { DesktopPage } from '@src/pages/DesktopPage';
 
 const DESKTOP_BASE = process.env.DESKTOP_PATH ?? '/desktop';
 
@@ -26,37 +34,7 @@ test.describe('03 - XSS and Security Verification', () => {
     /**
      * Verify if HTML/script tags in the initial transcript are properly escaped
      */
-    const payload: TestRunPayload = {
-      interactionInformation: {
-        interactionId: 'CHAT-XSS-PRELOAD',
-        channel: 'Chat',
-        authenticationStatus: 'Authenticated',
-        customerAccountNumber: '10001',
-        journeyName: 'Security Test',
-        queueName: 'General',
-        agentDesktopStatus: 'Connected',
-        startTime: '2026-03-11T10:00:00Z',
-      },
-      chatTranscript: [
-        {
-          sender: 'Customer',
-          timestamp: '10:00:01',
-          message: '<script>alert("XSS from preload")</script>Malicious content'
-        },
-        {
-          sender: 'Customer',
-          timestamp: '10:00:02',
-          message: '<img src=x onerror="alert(\'XSS\')">Image tag injection'
-        },
-        {
-          sender: 'Customer',
-          timestamp: '10:00:03',
-          message: '<a href="javascript:alert(\'XSS\')">Click me</a>'
-        }
-      ],
-    };
-
-    const desktop = await openDesktopWithRun(page, request, payload);
+    const desktop = await openDesktopWithRun(page, request, PAYLOAD_XSS_PRELOAD);
     await readyAndAccept(desktop);
     await desktop.waitForTranscriptCount(3);
 
@@ -81,7 +59,7 @@ test.describe('03 - XSS and Security Verification', () => {
     const messageElement = page.locator('[data-testid="transcript-text-0"]');
     const innerHTML = await messageElement.innerHTML();
     const textContent = await messageElement.textContent();
-    
+
     console.log('innerHTML:', innerHTML);
     console.log('textContent:', textContent);
 
@@ -109,23 +87,7 @@ test.describe('03 - XSS and Security Verification', () => {
     /**
      * Verify if HTML/script tags in live agent messages are properly escaped
      */
-    const payload: TestRunPayload = {
-      interactionInformation: {
-        interactionId: 'CHAT-XSS-LIVE',
-        channel: 'Chat',
-        authenticationStatus: 'Authenticated',
-        customerAccountNumber: '10001',
-        journeyName: 'Security Test',
-        queueName: 'General',
-        agentDesktopStatus: 'Connected',
-        startTime: '2026-03-11T10:00:00Z',
-      },
-      chatTranscript: [
-        { sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }
-      ],
-    };
-
-    const desktop = await openDesktopWithRun(page, request, payload);
+    const desktop = await openDesktopWithRun(page, request, PAYLOAD_XSS_LIVE);
     await readyAndAccept(desktop);
 
     let alertFired = false;
@@ -153,7 +115,7 @@ test.describe('03 - XSS and Security Verification', () => {
     const messageElement = page.locator(`[data-testid="transcript-text-${beforeSend}"]`);
     const innerHTML = await messageElement.innerHTML();
     const textContent = await messageElement.textContent();
-    
+
     console.log('innerHTML:', innerHTML);
     console.log('textContent:', textContent);
 
@@ -168,34 +130,15 @@ test.describe('03 - XSS and Security Verification', () => {
     /**
      * Test if SQL injection patterns cause any issues
      */
-    const payload: TestRunPayload = {
-      interactionInformation: {
-        interactionId: 'CHAT-SQL-INJECTION',
-        channel: 'Chat',
-        authenticationStatus: 'Authenticated',
-        customerAccountNumber: "10001' OR '1'='1",
-        journeyName: 'Security Test',
-        queueName: 'General',
-        agentDesktopStatus: 'Connected',
-        startTime: '2026-03-11T10:00:00Z',
-      },
-      chatTranscript: [
-        {
-          sender: 'Customer',
-          timestamp: '10:00:01',
-          message: "'; DROP TABLE users; --"
-        }
-      ],
-    };
 
     // This should be rejected by the API or handled safely
     try {
-      const desktop = await openDesktopWithRun(page, request, payload);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_SQL_INJECTION);
       await readyAndAccept(desktop);
-      
+
       const transcript = await desktop.getTranscriptMessages();
       console.log('SQL injection pattern stored as:', transcript[0].message);
-      
+
       // If we got here, the payload was accepted
       // Verify the message is stored as-is (not interpreted)
       expect(transcript[0].message).toBe("'; DROP TABLE users; --");
@@ -209,35 +152,17 @@ test.describe('03 - XSS and Security Verification', () => {
     /**
      * Test various unicode characters and emojis
      */
-    const payload: TestRunPayload = {
-      interactionInformation: {
-        interactionId: 'CHAT-UNICODE',
-        channel: 'Chat',
-        authenticationStatus: 'Authenticated',
-        customerAccountNumber: '10001',
-        journeyName: 'Unicode Test',
-        queueName: 'General',
-        agentDesktopStatus: 'Connected',
-        startTime: '2026-03-11T10:00:00Z',
-      },
-      chatTranscript: [
-        { sender: 'Customer', timestamp: '10:00:01', message: '你好 😀 مرحبا 🎉 Здравствуй' },
-        { sender: 'Customer', timestamp: '10:00:02', message: '𝕌𝕟𝕚𝕔𝕠𝕕𝕖 𝕋𝕖𝕤𝕥' },
-        { sender: 'Customer', timestamp: '10:00:03', message: '™️ © ® ¯\\_(ツ)_/¯' }
-      ],
-    };
-
-    const desktop = await openDesktopWithRun(page, request, payload);
+    const desktop = await openDesktopWithRun(page, request, PAYLOAD_UNICODE);
     await readyAndAccept(desktop);
     await desktop.waitForTranscriptCount(3);
 
     const transcript = await desktop.getTranscriptMessages();
-    
+
     // Verify unicode is preserved
     expect(transcript[0].message).toContain('你好');
     expect(transcript[0].message).toContain('😀');
     expect(transcript[0].message).toContain('مرحبا');
-    
+
     console.log('Unicode message 1:', transcript[0].message);
     console.log('Unicode message 2:', transcript[1].message);
     console.log('Unicode message 3:', transcript[2].message);
@@ -247,36 +172,18 @@ test.describe('03 - XSS and Security Verification', () => {
     /**
      * Test a very long message with mixed content
      */
-    const longMessage = 'A'.repeat(1000) + '<script>alert("xss")</script>' + '😀'.repeat(100);
-    
-    const payload: TestRunPayload = {
-      interactionInformation: {
-        interactionId: 'CHAT-LONG-XSS',
-        channel: 'Chat',
-        authenticationStatus: 'Authenticated',
-        customerAccountNumber: '10001',
-        journeyName: 'Long Message Test',
-        queueName: 'General',
-        agentDesktopStatus: 'Connected',
-        startTime: '2026-03-11T10:00:00Z',
-      },
-      chatTranscript: [
-        { sender: 'Customer', timestamp: '10:00:01', message: longMessage }
-      ],
-    };
-
-    const desktop = await openDesktopWithRun(page, request, payload);
+    const desktop = await openDesktopWithRun(page, request, PAYLOAD_LONG_XSS);
     await readyAndAccept(desktop);
     await desktop.waitForTranscriptCount(1);
 
     const transcript = await desktop.getTranscriptMessages();
-    
+
     // Verify the full message is stored
-    expect(transcript[0].message.length).toBe(longMessage.length);
-    
+    expect(transcript[0].message.length).toBe(LONG_XSS_MESSAGE.length);
+
     // Verify no truncation
-    expect(transcript[0].message).toBe(longMessage);
-    
+    expect(transcript[0].message).toBe(LONG_XSS_MESSAGE);
+
     console.log('Long message length:', transcript[0].message.length);
   });
 });

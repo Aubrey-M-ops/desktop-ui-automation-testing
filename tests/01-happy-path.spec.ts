@@ -1,9 +1,9 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { createTestRun, type TestRunPayload } from '../src/api/testrun';
-import { PAYLOAD_HAPPY_PATH } from '../test-data';
-import { DesktopPage } from '../src/pages/DesktopPage';
-import { ASSERTION_FIELDS } from '../src/config/assertion-fields';
-import { profile10001 } from '../test-data/profiles';
+import { createTestRun, type TestRunPayload } from '@src/api/testrun';
+import { PAYLOAD_HAPPY_PATH } from '@test-data';
+import { DesktopPage } from '@src/pages/DesktopPage';
+import { ASSERTION_FIELDS } from '@src/config/assertion-fields';
+import { profile10001 } from '@test-data/profiles';
 
 const DESKTOP_BASE = process.env.DESKTOP_PATH ?? '/desktop';
 
