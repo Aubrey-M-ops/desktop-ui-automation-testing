@@ -2,6 +2,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 import { createTestRun, type TestRunPayload } from '../src/api/testrun';
 import { PAYLOAD_HAPPY_PATH } from '../test-data';
 import { DesktopPage } from '../src/pages/DesktopPage';
+import { ASSERTION_FIELDS } from '../src/config/assertion-fields';
 import { profile10001 } from '../test-data/profiles';
 
 const DESKTOP_BASE = process.env.DESKTOP_PATH ?? '/desktop';
@@ -35,17 +36,7 @@ test.describe('01 - Happy path', () => {
     const expectedInteractionInfo = PAYLOAD_HAPPY_PATH.interactionInformation;
     
     // Verify each field except startTime (which needs partial match)
-    const fieldsToVerify = [
-      'interactionId',
-      'channel', 
-      'authenticationStatus',
-      'customerAccountNumber',
-      'journeyName',
-      'queueName',
-      'agentDesktopStatus',
-    ] as const;
-
-    for (const field of fieldsToVerify) {
+    for (const field of ASSERTION_FIELDS.interactionInfoExact) {
       expect(interactionInfo[field]).toBe(expectedInteractionInfo[field]);
     }
     expect(interactionInfo.startTime).toContain('10:30');
@@ -57,15 +48,7 @@ test.describe('01 - Happy path', () => {
     const profile = await desktop.getProfileData();
     
     // Verify all profile fields dynamically
-    const profileFieldsToVerify = [
-      'customerName',
-      'customerTier',
-      'accountStatus',
-      'lastPaymentDate',
-      'preferredLanguage',
-    ] as const;
-
-    for (const field of profileFieldsToVerify) {
+    for (const field of ASSERTION_FIELDS.profileExact) {
       expect(profile[field]).toBe(expectedProfile[field]);
     }
     
