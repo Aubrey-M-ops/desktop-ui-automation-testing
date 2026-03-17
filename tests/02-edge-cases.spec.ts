@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { createTestRun, type TestRunPayload, type TranscriptMessage } from '../src/api/testrun';
 import {
@@ -9,24 +7,14 @@ import {
   PAYLOAD_UNAUTHENTICATED,
 } from '../test-data';
 import { DesktopPage } from '../src/pages/DesktopPage';
+import { profile10001, profile10012, type ProfileFixture } from '../test-data/profiles';
 
 const DESKTOP_BASE = process.env.DESKTOP_PATH ?? '/desktop';
-
-interface ProfileFixture {
-  customerName: string;
-  accountNumber?: string;
-  recentTransactions: Array<{ date: string; description: string; amount: string }>;
-}
 
 async function fetchJson<T>(request: APIRequestContext, path: string): Promise<T> {
   const response = await request.get(path);
   expect(response.ok()).toBeTruthy();
   return response.json() as Promise<T>;
-}
-
-async function readLocalJson<T>(relativePath: string): Promise<T> {
-  const filePath = path.resolve(__dirname, '..', relativePath);
-  return JSON.parse(await readFile(filePath, 'utf8')) as T;
 }
 
 async function openDesktopWithRun(
@@ -102,7 +90,7 @@ test.describe('02 - Edge cases', () => {
     });
 
     test('TC-06 Interaction Information and Customer Profile tabs are mutually exclusive', async ({ page, request }) => {
-      const profile = await readLocalJson<ProfileFixture>('test-data/profiles/10001.json');
+      const profile = profile10001;
       const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
@@ -189,7 +177,7 @@ test.describe('02 - Edge cases', () => {
 
     test('TC-11 Customer profile transaction list renders the expected rows', async ({ page, request }) => {
       const account = '10012';
-      const profile = await readLocalJson<ProfileFixture>('test-data/profiles/10012.json');
+      const profile = profile10012;
       const payload: TestRunPayload = {
         interactionInformation: {
           interactionId: 'CHAT-TX-TRUNC',
