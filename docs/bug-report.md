@@ -32,7 +32,7 @@ Test run summary:
 
 **Screenshot:**
 
-![Chat invite visible in Not Ready state](docs/bug-screenshots/not-ready-invite-visible.png)
+![Chat invite visible in Not Ready state](bug-screenshots/not-ready-invite-visible.png)
 
 ---
 
@@ -56,7 +56,7 @@ Test run summary:
 
 **Screenshot:**
 
-![Transaction list paginated after 10 rows](docs/bug-screenshots/transaction-list-pagination.png)
+![Transaction list paginated after 10 rows](bug-screenshots/transaction-list-pagination.png)
 
 ---
 
@@ -84,7 +84,7 @@ Test run summary:
 
 **Screenshot:**
 
-![Badge capped at 35 after large transcript](docs/bug-screenshots/badge-cap-after-large-transcript.png)
+![Badge capped at 35 after large transcript](bug-screenshots/badge-cap-after-large-transcript.png)
 
 **Note:** This bug is reportedly fixed in `/desktopv2`.
 
