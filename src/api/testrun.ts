@@ -72,7 +72,17 @@ export async function createTestRun(
   request: APIRequestContext,
   payload: TestRunPayload,
 ): Promise<TestRunResponse> {
-  const response = await request.post("/api/testrun", { data: payload });
+  let response = await request.post("/api/testrun", { data: payload });
+  /*
+   * The server enforces a rate limit on /api/testrun. When consecutive tests
+   * run back-to-back and finish quickly, the next createTestRun call can arrive
+   * before the rate-limit window resets, returning 429. A single 2-second wait
+   * is enough for the limit to clear before retrying.
+   */
+  if (response.status() === 429) {
+    await new Promise((r) => setTimeout(r, 2000));
+    response = await request.post("/api/testrun", { data: payload });
+  }
   expect(response.ok()).toBeTruthy();
   return response.json() as Promise<TestRunResponse>;
 }

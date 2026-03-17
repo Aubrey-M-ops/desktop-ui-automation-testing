@@ -2,7 +2,6 @@ import type { InteractionInfo } from '@src/api/testrun';
 
 type ProfileFieldKey =
   | 'customerName'
-  | 'accountNumber'
   | 'customerTier'
   | 'accountStatus'
   | 'lastPaymentDate'
@@ -48,7 +47,6 @@ export const SELECTORS = {
     // Scalar fields — keys match ProfileInfo field names for dynamic iteration
     fields: {
       customerName:      'customer-name',
-      accountNumber:     'customer-account-number',
       customerTier:      'customer-tier',
       accountStatus:     'account-status',
       lastPaymentDate:   'last-payment-date',

@@ -17,7 +17,6 @@ export interface TranscriptEntry {
 
 export interface ProfileInfo {
   customerName: string;
-  accountNumber: string;
   customerTier: string;
   accountStatus: string;
   lastPaymentDate: string;
