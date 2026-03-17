@@ -1,6 +1,11 @@
 # Test Cases
 
-Total: 20 test cases across 7 modules.
+**Total: 31 test cases** across 10 modules (updated 2026-03-17 after removing duplicates).
+
+**Changes from previous version:**
+- Removed 4 duplicate test cases (old TC-13, TC-17, TC-28, TC-30)
+- Renumbered all subsequent test cases sequentially
+- Total reduced from 35 to 31 tests
 
 ---
 
@@ -12,323 +17,470 @@ Total: 20 test cases across 7 modules.
 |---|---|
 | **File** | `tests/01-happy-path.spec.ts` |
 | **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Profile Assertion Data** | local file `test-data/profiles/10001.json` (`Olivia Carter`, account `10001`, 3 recent transactions) |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` from `test-data/transcripts/happy-path.ts` (3 messages) |
+| **Profile Assertion Data** | local file `test-data/profiles/10001.json` |
+| **Transcript Data** | 3 messages in payload |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`, then open `/desktop/{runId}`
-2. Wait until workspace is gated, set agent to `Ready`, then accept the chat invite
-3. Assert all Interaction Information fields match `PAYLOAD_HAPPY_PATH.interactionInformation`
-4. Open Customer Profile and assert rendered profile matches `test-data/profiles/10001.json`
-5. Return to Interaction Information and assert transcript matches `PAYLOAD_HAPPY_PATH.chatTranscript`
-6. Assert badge count equals the initial transcript length
-7. Send `I am reviewing your billing history now.` and assert the appended `Agent` + `System` messages
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`, open `/desktop/{runId}`
+2. Set agent to `Ready`, accept chat invite
+3. Assert all 8 Interaction Information fields match payload
+4. Open Customer Profile, assert profile matches `10001.json`
+5. Assert transcript matches payload (3 messages)
+6. Assert badge count = 3
+7. Send live message, assert agent + echo replies appear
 
 ---
 
-## Module B - Entry Flow And Agent State
+## Module B - Entry Flow and Agent State
 
 ### TC-02: Chat invite appears only when agent status is Ready
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
+| **Failing** | ❌ Bug #1 |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Assert invite is hidden initially
-3. Switch agent status to `Offline` and `Not Ready`, confirming invite stays hidden
-4. Switch to `Ready` and assert invite appears
+1. POST `/api/testrun`, observe invite hidden initially
+2. Switch to `Offline` and `Not Ready` → invite stays hidden
+3. Switch to `Ready` → invite appears
 
 ### TC-03: Chat invite remains hidden when agent moves from Offline to Not Ready
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
+| **Failing** | ❌ Bug #1 |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Set agent status to `Offline` and assert invite is hidden
-3. Set agent status to `Not Ready`
-4. Assert invite remains hidden
+1. Set agent status to `Offline` → invite hidden
+2. Set to `Not Ready` → invite should stay hidden (currently fails)
+
+### TC-04: Workspace is gated before accepting chat invite
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
+
+**Steps:**
+1. Set agent to `Ready` but don't accept invite
+2. Assert workspace gated overlay visible
+3. Assert send button absent or disabled
 
 ---
 
-## Module C - Panel Visibility And Tab Navigation
+## Module C - Panel Visibility and Tab Navigation
 
-### TC-04: Unauthenticated interaction shows the profile placeholder after unlock
-
-| | |
-|---|---|
-| **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_UNAUTHENTICATED` from `test-data/payloads/unauthenticated.ts` |
-| **Transcript Data** | `UNAUTHENTICATED_TRANSCRIPT` from `test-data/transcripts/unauthenticated.ts` (3 messages) |
-| **Profile Data** | none expected; payload uses `authenticationStatus: 'Not Authenticated'` and empty `customerAccountNumber` |
-
-**Steps:**
-1. POST `/api/testrun` with `PAYLOAD_UNAUTHENTICATED`
-2. Wait until workspace is gated, then set agent to `Ready` and accept the invite
-3. Assert Interaction Information shows `Not Authenticated` and no customer account number
-4. Open Customer Profile and assert the unavailable placeholder is shown
-
-### TC-05: Interaction Information and Customer Profile tabs are mutually exclusive
+### TC-05: Unauthenticated interaction shows profile placeholder
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Profile Assertion Data** | local file `test-data/profiles/10001.json` (`Olivia Carter`) |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Test Data** | `PAYLOAD_UNAUTHENTICATED` |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Unlock the workspace and accept the invite
-3. Open Interaction Information and assert profile panel is hidden
-4. Open Customer Profile, wait for `Olivia Carter`, and assert interaction panel is hidden
+1. POST with `authenticationStatus: 'Not Authenticated'`
+2. Accept invite
+3. Assert interaction info shows "Not Authenticated"
+4. Open Customer Profile → assert placeholder visible
+
+### TC-06: Interaction Information and Customer Profile tabs are mutually exclusive
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
+
+**Steps:**
+1. Open Interaction Information → profile hidden
+2. Open Customer Profile → interaction info hidden
 
 ---
 
 ## Module D - Data Rendering Accuracy
 
-### TC-06: Baseline transcript renders in submission order
+### TC-07: Baseline transcript renders in submission order
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` from `test-data/transcripts/happy-path.ts` (3 messages) |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` (3 messages) |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Unlock the workspace and accept the invite
-3. Wait for 3 transcript rows
-4. Assert rendered transcript equals `PAYLOAD_HAPPY_PATH.chatTranscript`
+1. Accept invite, wait for 3 transcript rows
+2. Assert rendered transcript equals payload
 
-### TC-07: Out-of-order timestamps still render in submission order
+### TC-08: Out-of-order timestamps render in submission order
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` from `test-data/payloads/large-conversation.ts` |
-| **Transcript Data** | `LARGE_CONVERSATION_TRANSCRIPT` from `test-data/transcripts/large-conversation.ts` (60 messages) |
-| **Special Check** | compares rendered items at indexes `4` and `5`, where timestamps are intentionally out of order |
+| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` (60 messages) |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_LARGE_CONVERSATION`
-2. Unlock the workspace and accept the invite
-3. Wait for 60 transcript rows
-4. Assert rendered rows `4` and `5` equal `LARGE_CONVERSATION_TRANSCRIPT[4]` and `[5]`
+1. Accept invite, wait for 60 rows
+2. Assert rows 4 and 5 match payload order (timestamps intentionally out of order)
 
-### TC-08: Account-specific transcript file is rendered when available
+### TC-09: Account-specific transcript file is rendered
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | dynamic payload built inside the test |
-| **Transcript Source** | GET `/sampletranscription/10003.json` -> assigned to `expectedTranscript` |
-| **Interaction Data** | inline `interactionInformation` with account `10003`, `interactionId: 'CHAT-TRANSCRIPT-10003'`, journey `General Support`, queue `General` |
+| **Test Data** | Dynamic - GET `/sampletranscription/10003.json` |
 
 **Steps:**
-1. GET `/sampletranscription/10003.json`
-2. Build an inline `TestRunPayload` using account `10003` and the fetched transcript
-3. POST `/api/testrun` with that payload
-4. Unlock the workspace and accept the invite
-5. Assert rendered transcript equals `expectedTranscript`
+1. Fetch account-specific transcript from API
+2. Create run with that transcript
+3. Assert rendered transcript matches fetched data
 
-### TC-09: Default transcript is used when no account-specific file exists
+### TC-10: Default transcript used when no account-specific file exists
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | dynamic payload built inside the test |
-| **Transcript Source** | GET `/sampletranscription/10001.json` -> expect `404`, then GET `/sampletranscription/default.json` |
-| **Interaction Data** | inline `interactionInformation` with account `10001`, `interactionId: 'CHAT-TRANSCRIPT-DEFAULT-10001'`, journey `General Support`, queue `General` |
+| **Test Data** | GET `/sampletranscription/default.json` |
 
 **Steps:**
-1. GET `/sampletranscription/10001.json` and assert `404`
-2. GET `/sampletranscription/default.json` into `defaultTranscript`
-3. Build an inline `TestRunPayload` with account `10001` and `defaultTranscript`
-4. POST `/api/testrun`, unlock the workspace, and accept the invite
-5. Assert rendered transcript equals `defaultTranscript`
+1. Confirm `/sampletranscription/10001.json` returns 404
+2. Fetch `default.json`
+3. Assert rendered transcript matches default
 
-### TC-10: Customer profile transaction list renders the expected rows
+### TC-11: Customer profile transaction list renders all rows
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | inline payload built inside the test |
-| **Profile Assertion Data** | local file `test-data/profiles/10012.json` (`Ethan Perry`, account `10012`, 23 recent transactions) |
-| **Transcript Data** | inline transcript with 1 message: `{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }` |
+| **Test Data** | Account 10012 with 23 transactions |
+| **Failing** | ❌ Bug #2 (only 10 rendered) |
 
 **Steps:**
-1. Read `test-data/profiles/10012.json`
-2. Build an inline `TestRunPayload` for account `10012` with a single-message transcript
-3. POST `/api/testrun`, unlock the workspace, and accept the invite
-4. Open Customer Profile and wait for `Ethan Perry`
-5. Count `[data-testid^="transaction-row-"]` and compare with `profile.recentTransactions.length`
+1. Create run for account 10012
+2. Open Customer Profile
+3. Assert transaction count = 23 (currently only 10 visible)
+
+### TC-12: Customer profile loads with non-empty customerName
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | Account 10001 |
+
+**Steps:**
+1. Accept invite, open Customer Profile
+2. Assert `customerName` is truthy
 
 ---
 
 ## Module E - Live Chat Composer
 
-### TC-11: Agent message shows a valid HH:MM:SS timestamp after send
+### TC-13: Send button disabled for empty input
+*(Formerly TC-14)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
-| **Live Chat Input** | `Checking your account now.` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Unlock the workspace and accept the invite
-3. Send `Checking your account now.`
-4. Assert the appended agent message timestamp matches `/^\\d{2}:\\d{2}:\\d{2}$/`
+1. Accept invite
+2. Clear chat input
+3. Assert send button disabled
 
-### TC-12: Send button is disabled for empty input
+### TC-14: Send button disabled for whitespace-only input
+*(Formerly TC-15)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
-| **Input State** | cleared via `clearLiveChatInput()` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Unlock the workspace and accept the invite
-3. Clear the live chat input
-4. Assert send button is disabled
+1. Accept invite
+2. Fill input with `'   '`
+3. Assert send button disabled
 
-### TC-13: Send button remains disabled for whitespace-only input
+### TC-15: Very long message (500 chars) sent without truncation
+*(Formerly TC-16)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
-| **Input State** | whitespace-only string `'   '` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Unlock the workspace and accept the invite
-3. Fill the input with `'   '`
-4. Assert send button is disabled
+1. Send 500-character message
+2. Assert message received completely
+3. Assert length = 500
+
+### TC-16: Rapid consecutive message sending
+*(Formerly TC-18)*
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
+
+**Steps:**
+1. Send 3 messages rapidly without waiting
+2. Wait 3 seconds
+3. Assert at least 3 messages delivered
 
 ---
 
 ## Module F - Badge Count
 
-### TC-14: Badge count matches the large transcript count
+### TC-17: Badge count matches large transcript count
+*(Formerly TC-19)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` from `test-data/payloads/large-conversation.ts` |
-| **Transcript Data** | `LARGE_CONVERSATION_TRANSCRIPT` (60 messages) |
+| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` (60 messages) |
+| **Failing** | ❌ Bug #3 (badge caps at 35) |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_LARGE_CONVERSATION`
-2. Unlock the workspace and accept the invite
-3. Wait for 60 transcript rows
-4. Compare `getBadgeCount()` with rendered transcript count
+1. Accept invite, wait for 60 transcript rows
+2. Assert badge count = 60 (currently shows 35)
 
-### TC-15: Badge increments when live chat messages are appended
+### TC-18: Badge increments when live chat messages appended
+*(Formerly TC-20)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
-| **Live Chat Input** | `Reviewing your account now.` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` (3 messages) |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Unlock the workspace and accept the invite
-3. Assert starting badge count is 3
-4. Send `Reviewing your account now.`
-5. Assert badge count becomes `PAYLOAD_HAPPY_PATH.chatTranscript.length + 2`
+1. Assert initial badge = 3
+2. Send message, wait for agent + echo
+3. Assert badge = 5
 
-### TC-16: Badge remains stable across tab switching
+### TC-19: Badge stable across tab switching
+*(Formerly TC-21)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
-| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
-2. Unlock the workspace and accept the invite
-3. Assert initial badge count is 3
-4. Switch to Customer Profile and back to Interaction Information
-5. Assert badge count remains unchanged
+1. Assert badge = 3
+2. Switch to Customer Profile and back
+3. Assert badge still = 3
 
-### TC-17: Badge count continues to increment after a large transcript
+### TC-20: Badge continues to increment after large transcript
+*(Formerly TC-22)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` from `test-data/payloads/large-conversation.ts` |
-| **Transcript Data** | `LARGE_CONVERSATION_TRANSCRIPT` (60 messages) |
-| **Live Chat Input** | `Checking your account.` |
+| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` (60 messages) |
+| **Failing** | ❌ Bug #3 (badge stuck at 35) |
 
 **Steps:**
-1. POST `/api/testrun` with `PAYLOAD_LARGE_CONVERSATION`
-2. Unlock the workspace and accept the invite
-3. Wait for 60 transcript rows
-4. Send `Checking your account.`
-5. Assert transcript count and badge count both become `62`
+1. Wait for 60 transcript rows
+2. Send message, wait for agent + echo
+3. Assert transcript count = 62 and badge = 62 (badge currently stuck at 35)
 
 ---
 
 ## Module G - API Contract Validation
 
-### TC-18: Authenticated runs accept the upper-bound sample profile account 10050
+### TC-21: Authenticated runs accept upper-bound account 10050
+*(Formerly TC-23)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | inline payload built inside the test |
-| **Profile Source** | GET `/sampleprofile/10050.json` -> assigned to `profile` |
-| **Transcript Data** | inline transcript with 1 message: `{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }` |
-| **Interaction Data** | inline `interactionInformation` with account `10050`, `interactionId: 'CHAT-BOUNDARY-10050'`, journey `General Support`, queue `General` |
+| **Test Data** | Account 10050 |
 
 **Steps:**
-1. GET `/sampleprofile/10050.json`
-2. Build an inline authenticated `TestRunPayload` for account `10050`
-3. POST `/api/testrun`, unlock the workspace, and accept the invite
-4. Open Customer Profile and wait for the fetched `profile.customerName`
-5. Assert rendered profile uses account `10050`
+1. POST with account 10050
+2. Accept invite, open profile
+3. Assert profile loads successfully
 
-### TC-19: Authenticated runs reject sample profile accounts outside 10001-10050
+### TC-22: Authenticated runs reject out-of-range accounts
+*(Formerly TC-24)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | inline payload with authenticated account `10051` |
-| **Transcript Data** | inline transcript with 1 message: `{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }` |
-| **API Expectation** | response status is `>= 400` and `< 500`, and body contains `message` |
+| **Test Data** | Account 10051 |
 
 **Steps:**
-1. POST `/api/testrun` with authenticated account `10051`
-2. Assert response status is a 4xx
-3. Assert response JSON contains `message`
+1. POST with account 10051
+2. Assert 4xx response
+3. Assert response contains `message` field
 
-### TC-20: Invalid payload returns a 4xx validation error
+### TC-23: Invalid payload returns 4xx validation error
+*(Formerly TC-25)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
-| **Test Data** | inline invalid request body `{ interactionInformation: {} }` |
-| **API Expectation** | response status is `>= 400` and `< 500`, and body contains `message` |
+| **Test Data** | `{ interactionInformation: {} }` |
 
 **Steps:**
-1. POST `/api/testrun` with `{ interactionInformation: {} }`
-2. Assert response status is a 4xx
-3. Assert response JSON contains `message`
+1. POST with empty interaction info
+2. Assert 4xx response with `message` field
+
+### TC-24: API rejects empty chatTranscript (Bug #4)
+*(Formerly TC-26)*
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `chatTranscript: []` |
+| **Failing** | ❌ Bug #4 |
+
+**Steps:**
+1. POST with empty transcript array
+2. Expected: 2xx response
+3. Actual: 4xx with "must not be empty" error
+
+---
+
+## Module H - Echo Message Behavior
+
+### TC-25: Echo reply sender type after agent sends message
+*(Formerly TC-27)*
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
+
+**Steps:**
+1. Send agent message
+2. Wait for agent + echo rows
+3. Assert echo sender = "Customer" (not "System")
+
+---
+
+## Module I - Agent Message Timestamp Accuracy
+
+### TC-26: Agent message timestamp shows actual time not epoch
+*(Formerly TC-29)*
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` |
+
+**Steps:**
+1. Send agent message
+2. Assert timestamp matches `/^\d{2}:\d{2}:\d{2}$/`
+3. Assert hour is between 0-23
+
+---
+
+## Module J - Security Verification
+
+### TC-27: HTML/Script tags in pre-loaded transcript are escaped
+*(Formerly TC-31)*
+
+| | |
+|---|---|
+| **File** | `tests/03-xss-verification.spec.ts` |
+| **Test Data** | Transcript with `<script>`, `<img onerror>`, `<a href="javascript:">` |
+
+**Steps:**
+1. Create run with XSS payload in transcript
+2. Register alert listener
+3. Assert no alert fires
+4. Assert tags are displayed as text (escaped)
+
+### TC-28: HTML/Script tags in live chat are escaped
+*(Formerly TC-32)*
+
+| | |
+|---|---|
+| **File** | `tests/03-xss-verification.spec.ts` |
+| **Test Data** | Live message with `<script>alert("XSS")</script>` |
+
+**Steps:**
+1. Send XSS payload via live chat
+2. Assert no alert fires
+3. Assert tags escaped in DOM
+
+### TC-29: SQL injection patterns rejected by API
+*(Formerly TC-33)*
+
+| | |
+|---|---|
+| **File** | `tests/03-xss-verification.spec.ts` |
+| **Test Data** | `customerAccountNumber: "10001' OR '1'='1"` |
+
+**Steps:**
+1. Attempt POST with SQL injection pattern
+2. Assert API rejects or stores as literal text
+
+### TC-30: Unicode and emoji characters preserved
+*(Formerly TC-34)*
+
+| | |
+|---|---|
+| **File** | `tests/03-xss-verification.spec.ts` |
+| **Test Data** | `你好 😀 مرحبا 🎉 Здравствуй`, `𝕌𝕟𝕚𝕔𝕠𝕕𝕖`, `™️ © ®` |
+
+**Steps:**
+1. Create run with unicode/emoji messages
+2. Assert all characters preserved correctly
+
+### TC-31: Message over 1000 characters rejected (Bug #5)
+*(Formerly TC-35)*
+
+| | |
+|---|---|
+| **File** | `tests/03-xss-verification.spec.ts` |
+| **Test Data** | Message with 1200+ characters |
+| **Failing** | ❌ Bug #5 |
+
+**Steps:**
+1. POST with >1000 char message
+2. Expected: message accepted or UI shows char limit
+3. Actual: API rejects with "size must be between 0 and 1000"
+
+---
+
+## Removed Duplicates (4 tests)
+
+These tests were removed as duplicates and their functionality is covered by other tests:
+
+1. **Old TC-13**: "Agent message shows valid HH:MM:SS timestamp"
+   - **Replaced by:** TC-26 (more comprehensive timestamp verification)
+
+2. **Old TC-17**: "Special characters and emojis preserved in messages"
+   - **Replaced by:** TC-28 (XSS escape verification) and TC-30 (Unicode/emoji preservation)
+
+3. **Old TC-28**: "Echo message content is non-empty"
+   - **Replaced by:** TC-25 (echo sender type verification already confirms message exists)
+
+4. **Old TC-30**: "Multiple agent messages show sequential timestamps"
+   - **Replaced by:** TC-26 (timestamp format verification is sufficient)
+
+---
+
+## Summary
+
+| Module | Test Range | Count |
+|--------|------------|-------|
+| A - Happy Path | TC-01 | 1 |
+| B - Entry Flow | TC-02 – TC-04 | 3 |
+| C - Panel Visibility | TC-05 – TC-06 | 2 |
+| D - Data Rendering | TC-07 – TC-12 | 6 |
+| E - Live Chat | TC-13 – TC-16 | 4 |
+| F - Badge Count | TC-17 – TC-20 | 4 |
+| G - API Validation | TC-21 – TC-24 | 4 |
+| H - Echo Behavior | TC-25 | 1 |
+| I - Timestamp | TC-26 | 1 |
+| J - Security | TC-27 – TC-31 | 5 |
+| **Total** | | **31** |
+
+**Test distribution:**
+- Happy path: 1 test (3%)
+- Edge cases: 25 tests (81%)
+- Security: 5 tests (16%)
