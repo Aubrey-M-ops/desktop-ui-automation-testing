@@ -1,0 +1,74 @@
+<svg width="460" height="640" viewBox="0 0 460 640" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, 'Cascadia Code', monospace" font-size="12">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+    </marker>
+    <marker id="arr-bug" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <!-- ── Step 1: goto ─────────────────────────────────────── -->
+  <rect x="110" y="20" width="240" height="52" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="230" y="41" text-anchor="middle" fill="#1d4ed8" font-weight="600">goto(runId)</text>
+  <text x="230" y="60" text-anchor="middle" fill="#475569" font-size="11">navigate to /desktop/{runId}</text>
+
+  <line x1="230" y1="72" x2="230" y2="97" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ── Step 2: waitForAgentStatus ──────────────────────── -->
+  <rect x="110" y="97" width="240" height="52" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="230" y="118" text-anchor="middle" fill="#1d4ed8" font-weight="600">waitForAgentStatus()</text>
+  <text x="230" y="137" text-anchor="middle" fill="#475569" font-size="11">status dropdown visible (3 options)</text>
+
+  <line x1="230" y1="149" x2="230" y2="174" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ── Step 3: waitForWorkspaceGated ───────────────────── -->
+  <rect x="110" y="174" width="240" height="52" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="230" y="195" text-anchor="middle" fill="#1d4ed8" font-weight="600">waitForWorkspaceGated()</text>
+  <text x="230" y="214" text-anchor="middle" fill="#475569" font-size="11">workspace-gated overlay visible</text>
+
+  <line x1="230" y1="226" x2="230" y2="251" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ── Step 4: setAgentStatusReady ─────────────────────── -->
+  <rect x="110" y="251" width="240" height="52" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="230" y="272" text-anchor="middle" fill="#1d4ed8" font-weight="600">setAgentStatusReady()</text>
+  <text x="230" y="291" text-anchor="middle" fill="#475569" font-size="11">select "Ready" from dropdown</text>
+
+  <line x1="230" y1="303" x2="230" y2="336" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ── Decision: chatInvite visible? ───────────────────── -->
+  <polygon points="230,336 320,372 230,408 140,372" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="230" y="369" text-anchor="middle" fill="#92400e" font-size="11" font-weight="600">chatInvite</text>
+  <text x="230" y="384" text-anchor="middle" fill="#92400e" font-size="11" font-weight="600">visible?</text>
+
+  <!-- Yes path (down) -->
+  <line x1="230" y1="408" x2="230" y2="437" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="238" y="427" fill="#15803d" font-size="11">yes</text>
+
+  <!-- No / Bug path (right) -->
+  <line x1="320" y1="372" x2="380" y2="372" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arr-bug)"/>
+  <rect x="380" y="348" width="68" height="48" rx="5" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="414" y="368" text-anchor="middle" fill="#dc2626" font-size="11" font-weight="600">Bug #1</text>
+  <text x="414" y="383" text-anchor="middle" fill="#dc2626" font-size="10">TC-02/03</text>
+  <text x="358" y="366" fill="#dc2626" font-size="11">no</text>
+
+  <!-- ── Step 5: acceptChatInvite ────────────────────────── -->
+  <rect x="110" y="437" width="240" height="52" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="230" y="458" text-anchor="middle" fill="#1d4ed8" font-weight="600">acceptChatInvite()</text>
+  <text x="230" y="477" text-anchor="middle" fill="#475569" font-size="11">click "Accept" button</text>
+
+  <line x1="230" y1="489" x2="230" y2="514" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ── End: workspace unlocked ─────────────────────────── -->
+  <rect x="110" y="514" width="240" height="52" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="230" y="535" text-anchor="middle" fill="#15803d" font-weight="600">Workspace unlocked</text>
+  <text x="230" y="554" text-anchor="middle" fill="#475569" font-size="11">workspace-gated hidden, tests run</text>
+
+  <!-- ── Legend ───────────────────────────────────────────── -->
+  <rect x="20" y="592" width="14" height="14" rx="3" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="40" y="603" fill="#475569" font-size="11">Page Object method</text>
+  <rect x="160" y="592" width="14" height="14" rx="3" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="180" y="603" fill="#475569" font-size="11">Decision point</text>
+  <rect x="290" y="592" width="14" height="14" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="310" y="603" fill="#475569" font-size="11">Known app bug</text>
+</svg>

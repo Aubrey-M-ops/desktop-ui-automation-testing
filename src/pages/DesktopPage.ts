@@ -1,27 +1,13 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { InteractionInfo } from '@src/api/testrun';
 import { SELECTORS } from '@src/config/selectors';
+import { TranscriptEntry, ProfileInfo } from '@src/types';
 
-export { InteractionInfo };
+export { InteractionInfo, TranscriptEntry, ProfileInfo };
 
 /** Converts a testid string to a CSS attribute selector. */
 function testIdToSelector(testId: string): string {
   return `[data-testid="${testId}"]`;
-}
-
-export interface TranscriptEntry {
-  sender: string;
-  timestamp: string;
-  message: string;
-}
-
-export interface ProfileInfo {
-  customerName: string;
-  customerTier: string;
-  accountStatus: string;
-  lastPaymentDate: string;
-  preferredLanguage: string;
-  recentTransactions: Array<{ date: string; description: string; amount: string }>;
 }
 
 export class DesktopPage {
@@ -134,14 +120,16 @@ export class DesktopPage {
   async getProfileData(): Promise<ProfileInfo> {
     const sp = SELECTORS.customerProfile;
 
-    // Read scalar fields from the page in parallel, then combine into a single object.
+    // Read all scalar profile fields in parallel (customerName, tier, status, etc.)
     const fieldEntries = await Promise.all(
       Object.entries(sp.fields).map(async ([key, testId]) =>
         [key, await this.fieldText(testId)] as const
       )
     );
 
-    // Transaction rows are indexed (transaction-row-0, …); cells have no testid — parse by position
+    // Transaction rows use indexed testids (transaction-row-0, transaction-row-1, …).
+    // Walk them until a row with the next index is not found in the DOM.
+    // Each row's innerText is split by newline; columns are mapped to field names by position.
     const recentTransactions: ProfileInfo['recentTransactions'] = [];
     let i = 0;
     while (true) {
@@ -165,7 +153,10 @@ export class DesktopPage {
     const st = SELECTORS.transcript;
     const messages: TranscriptEntry[] = [];
 
-    // Messages are indexed (transcript-message-0, transcript-message-1, …)
+    // Transcript rows use indexed testids (transcript-message-0, transcript-message-1, …).
+    // For each row, read its sub-fields (sender, timestamp, message) using the corresponding
+    // indexed testids (e.g. transcript-sender-0, transcript-text-0).
+    // Stop when the next row index is not present in the DOM.
     let i = 0;
     while (true) {
       const msg = this.byTestId(`${st.messagePrefix}-${i}`);
