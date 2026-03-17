@@ -1,12 +1,6 @@
 # Test Cases
 
-**Total: 31 test cases** across 10 modules (updated 2026-03-17 after removing duplicates).
-
-**Changes from previous version:**
-- Removed 4 duplicate test cases (old TC-13, TC-17, TC-28, TC-30)
-- Renumbered all subsequent test cases sequentially
-- Total reduced from 35 to 31 tests
-
+**Total: 31 test cases** across 10 modules (updated 2026-03-17).
 ---
 
 ## Module A - Happy Path
@@ -39,7 +33,6 @@
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
 | **Test Data** | `PAYLOAD_HAPPY_PATH` |
-| **Failing** | ❌ Bug #1 |
 
 **Steps:**
 1. POST `/api/testrun`, observe invite hidden initially
@@ -52,11 +45,10 @@
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
 | **Test Data** | `PAYLOAD_HAPPY_PATH` |
-| **Failing** | ❌ Bug #1 |
 
 **Steps:**
 1. Set agent status to `Offline` → invite hidden
-2. Set to `Not Ready` → invite should stay hidden (currently fails)
+2. Set to `Not Ready` → invite should stay hidden
 
 ### TC-04: Workspace is gated before accepting chat invite
 
@@ -154,12 +146,11 @@
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
 | **Test Data** | Account 10012 with 23 transactions |
-| **Failing** | ❌ Bug #2 (only 10 rendered) |
 
 **Steps:**
 1. Create run for account 10012
 2. Open Customer Profile
-3. Assert transaction count = 23 (currently only 10 visible)
+3. Assert transaction count = 23
 
 ### TC-12: Customer profile loads with non-empty customerName
 
@@ -177,7 +168,6 @@
 ## Module E - Live Chat Composer
 
 ### TC-13: Send button disabled for empty input
-*(Formerly TC-14)*
 
 | | |
 |---|---|
@@ -190,7 +180,6 @@
 3. Assert send button disabled
 
 ### TC-14: Send button disabled for whitespace-only input
-*(Formerly TC-15)*
 
 | | |
 |---|---|
@@ -203,7 +192,6 @@
 3. Assert send button disabled
 
 ### TC-15: Very long message (500 chars) sent without truncation
-*(Formerly TC-16)*
 
 | | |
 |---|---|
@@ -216,7 +204,6 @@
 3. Assert length = 500
 
 ### TC-16: Rapid consecutive message sending
-*(Formerly TC-18)*
 
 | | |
 |---|---|
@@ -233,20 +220,17 @@
 ## Module F - Badge Count
 
 ### TC-17: Badge count matches large transcript count
-*(Formerly TC-19)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
 | **Test Data** | `PAYLOAD_LARGE_CONVERSATION` (60 messages) |
-| **Failing** | ❌ Bug #3 (badge caps at 35) |
 
 **Steps:**
 1. Accept invite, wait for 60 transcript rows
-2. Assert badge count = 60 (currently shows 35)
+2. Assert badge count = 60
 
 ### TC-18: Badge increments when live chat messages appended
-*(Formerly TC-20)*
 
 | | |
 |---|---|
@@ -259,7 +243,6 @@
 3. Assert badge = 5
 
 ### TC-19: Badge stable across tab switching
-*(Formerly TC-21)*
 
 | | |
 |---|---|
@@ -272,25 +255,22 @@
 3. Assert badge still = 3
 
 ### TC-20: Badge continues to increment after large transcript
-*(Formerly TC-22)*
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
 | **Test Data** | `PAYLOAD_LARGE_CONVERSATION` (60 messages) |
-| **Failing** | ❌ Bug #3 (badge stuck at 35) |
 
 **Steps:**
 1. Wait for 60 transcript rows
 2. Send message, wait for agent + echo
-3. Assert transcript count = 62 and badge = 62 (badge currently stuck at 35)
+3. Assert transcript count = 62 and badge = 62
 
 ---
 
 ## Module G - API Contract Validation
 
 ### TC-21: Authenticated runs accept upper-bound account 10050
-*(Formerly TC-23)*
 
 | | |
 |---|---|
@@ -303,7 +283,6 @@
 3. Assert profile loads successfully
 
 ### TC-22: Authenticated runs reject out-of-range accounts
-*(Formerly TC-24)*
 
 | | |
 |---|---|
@@ -316,7 +295,6 @@
 3. Assert response contains `message` field
 
 ### TC-23: Invalid payload returns 4xx validation error
-*(Formerly TC-25)*
 
 | | |
 |---|---|
@@ -327,26 +305,22 @@
 1. POST with empty interaction info
 2. Assert 4xx response with `message` field
 
-### TC-24: API rejects empty chatTranscript (Bug #4)
-*(Formerly TC-26)*
+### TC-24: API validates empty chatTranscript input
 
 | | |
 |---|---|
 | **File** | `tests/02-edge-cases.spec.ts` |
 | **Test Data** | `chatTranscript: []` |
-| **Failing** | ❌ Bug #4 |
 
 **Steps:**
 1. POST with empty transcript array
-2. Expected: 2xx response
-3. Actual: 4xx with "must not be empty" error
+2. Assert API response follows the transcript validation rule
 
 ---
 
 ## Module H - Echo Message Behavior
 
 ### TC-25: Echo reply sender type after agent sends message
-*(Formerly TC-27)*
 
 | | |
 |---|---|
@@ -363,7 +337,6 @@
 ## Module I - Agent Message Timestamp Accuracy
 
 ### TC-26: Agent message timestamp shows actual time not epoch
-*(Formerly TC-29)*
 
 | | |
 |---|---|
@@ -380,7 +353,6 @@
 ## Module J - Security Verification
 
 ### TC-27: HTML/Script tags in pre-loaded transcript are escaped
-*(Formerly TC-31)*
 
 | | |
 |---|---|
@@ -394,7 +366,6 @@
 4. Assert tags are displayed as text (escaped)
 
 ### TC-28: HTML/Script tags in live chat are escaped
-*(Formerly TC-32)*
 
 | | |
 |---|---|
@@ -407,7 +378,6 @@
 3. Assert tags escaped in DOM
 
 ### TC-29: SQL injection patterns rejected by API
-*(Formerly TC-33)*
 
 | | |
 |---|---|
@@ -419,7 +389,6 @@
 2. Assert API rejects or stores as literal text
 
 ### TC-30: Unicode and emoji characters preserved
-*(Formerly TC-34)*
 
 | | |
 |---|---|
@@ -430,14 +399,12 @@
 1. Create run with unicode/emoji messages
 2. Assert all characters preserved correctly
 
-### TC-31: Message over 1000 characters rejected (Bug #5)
-*(Formerly TC-35)*
+### TC-31: API validates message length over 1000 characters
 
 | | |
 |---|---|
 | **File** | `tests/03-xss-verification.spec.ts` |
 | **Test Data** | Message with 1200+ characters |
-| **Failing** | ❌ Bug #5 |
 
 **Steps:**
 1. POST with >1000 char message
@@ -446,23 +413,6 @@
 
 ---
 
-## Removed Duplicates (4 tests)
-
-These tests were removed as duplicates and their functionality is covered by other tests:
-
-1. **Old TC-13**: "Agent message shows valid HH:MM:SS timestamp"
-   - **Replaced by:** TC-26 (more comprehensive timestamp verification)
-
-2. **Old TC-17**: "Special characters and emojis preserved in messages"
-   - **Replaced by:** TC-28 (XSS escape verification) and TC-30 (Unicode/emoji preservation)
-
-3. **Old TC-28**: "Echo message content is non-empty"
-   - **Replaced by:** TC-25 (echo sender type verification already confirms message exists)
-
-4. **Old TC-30**: "Multiple agent messages show sequential timestamps"
-   - **Replaced by:** TC-26 (timestamp format verification is sufficient)
-
----
 
 ## Summary
 
