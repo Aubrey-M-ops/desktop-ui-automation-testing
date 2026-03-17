@@ -4,305 +4,303 @@ Total: 18 test cases across 7 modules.
 
 ---
 
-## Module A - Happy Path E2E
+## Module A - Happy Path
 
-### TC-01: Billing Dispute - Full End-to-End Flow
+### TC-01: Billing Dispute - Full end-to-end flow (account 10001)
 
 | | |
 |---|---|
-| **File** | `01-happy-path.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` (account 10001, 3 transcript messages); GET `/sampleprofile/10001.json` as the assertion baseline |
-| **Related Bugs** | Bug #2 (incorrect echo sender), Bug #3 (invalid agent timestamp) |
+| **File** | `tests/01-happy-path.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Profile Assertion Data** | local file `test-data/profiles/10001.json` (`Olivia Carter`, account `10001`, 3 recent transactions) |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` from `test-data/transcripts/happy-path.ts` (3 messages) |
 
 **Steps:**
-1. POST `/api/testrun` -> get `runId`, then open `/desktop/{runId}`
-2. Assert `workspace-gated` is visible before acceptance
-3. `setAgentStatusReady()` -> assert `chat-invite` appears
-4. `acceptChatInvite()` -> assert `workspace-gated` disappears
-5. Assert all 8 Interaction Info fields fully match the payload (`interactionId` / `channel` / `authenticationStatus` / `customerAccountNumber` / `journeyName` / `queueName` / `agentDesktopStatus` / `startTime`)
-6. `openCustomerProfileTab()` -> `waitForProfile(expectedProfile.customerName)`
-7. Assert `getProfileData()` fully matches `expectedProfile` including each `recentTransactions` row
-8. `openInteractionInformationTab()` -> assert `interaction-information` is visible and `customer-profile` is not
-9. Assert the 3 transcript messages match sender / timestamp / message one by one
-10. `sendLiveChatMessage('I am reviewing your billing history now.')`
-11. Wait for 1 new agent message and 1 echo message
-12. Assert `getBadgeCount() === 5`
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`, then open `/desktop/{runId}`
+2. Wait until workspace is gated, set agent to `Ready`, then accept the chat invite
+3. Assert all Interaction Information fields match `PAYLOAD_HAPPY_PATH.interactionInformation`
+4. Open Customer Profile and assert rendered profile matches `test-data/profiles/10001.json`
+5. Return to Interaction Information and assert transcript matches `PAYLOAD_HAPPY_PATH.chatTranscript`
+6. Assert badge count equals the initial transcript length
+7. Send `I am reviewing your billing history now.` and assert the appended `Agent` + `System` messages
 
 ---
 
-## Module B - Entry Flow And State Machine
+## Module B - Entry Flow And Agent State
 
-### TC-02: Chat Invite Appears Only In Ready State, Not In Offline / Not Ready
-
-| | |
-|---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` |
-
-**Steps:**
-1. Create a run and open the desktop
-2. Assert `chat-invite` is not visible initially because the desktop starts in `Offline`
-3. `setAgentStatus('Not Ready')` -> assert `chat-invite` is still not visible
-4. `setAgentStatusReady()` -> assert `chat-invite` appears
-5. `acceptChatInvite()` -> assert `workspace-gated` disappears
-
----
-
-### TC-03: Offline -> Not Ready Unexpectedly Triggers Chat Invite
+### TC-02: Chat invite appears only when agent status is Ready
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` |
-| **Related Bug** | Bug #6 (Not Ready triggers the chat invite) |
-| **Status** | Verified on the hosted environment: switching from Offline to Not Ready unexpectedly shows the invite |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
 
 **Steps:**
-1. Create a run and open the desktop
-2. `setAgentStatus('Offline')` -> assert `chat-invite` is not visible
-3. `setAgentStatus('Not Ready')` -> assert `chat-invite` is still not visible <- **actual result: invite appears (bug)**
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Assert invite is hidden initially
+3. Switch agent status to `Offline` and `Not Ready`, confirming invite stays hidden
+4. Switch to `Ready` and assert invite appears
+
+### TC-03: Offline to Not Ready unexpectedly triggers the chat invite (Bug #6)
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Related Bug** | Bug #6 |
+
+**Steps:**
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Set agent status to `Offline` and assert invite is hidden
+3. Set agent status to `Not Ready`
+4. Assert invite becomes visible to reproduce the bug
 
 ---
 
 ## Module C - Panel Visibility And Tab Navigation
 
-### TC-04: Unauthenticated - Show Profile Placeholder After Workspace Unlock
+### TC-04: Unauthenticated interaction shows the profile placeholder after unlock
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `UNAUTHENTICATED_PAYLOAD` (`authenticationStatus = "Not Authenticated"`) |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_UNAUTHENTICATED` from `test-data/payloads/unauthenticated.ts` |
+| **Transcript Data** | `UNAUTHENTICATED_TRANSCRIPT` from `test-data/transcripts/unauthenticated.ts` (3 messages) |
+| **Profile Data** | none expected; payload uses `authenticationStatus: 'Not Authenticated'` and empty `customerAccountNumber` |
 
 **Steps:**
-1. Create a run, then `waitForWorkspaceGated()`
-2. `setAgentStatusReady()`, `acceptChatInvite()`
-3. Assert `isWorkspaceGatedVisible() === false` after acceptance
-4. Assert `isProfileVisible() === false` on the default Interaction Info tab
-5. Assert `getInteractionInfo().authenticationStatus === 'Not Authenticated'`
-6. Assert `getInteractionInfo().customerAccountNumber` is empty
-7. `openCustomerProfileTab()`
-8. Assert `isProfilePlaceholderVisible() === true` (`data-testid="customer-profile-unavailable"`, text `Customer profile unavailable until authenticated`)
-9. Assert `isProfileVisible() === true` because the section container is visible but only contains the placeholder
+1. POST `/api/testrun` with `PAYLOAD_UNAUTHENTICATED`
+2. Wait until workspace is gated, then set agent to `Ready` and accept the invite
+3. Assert Interaction Information shows `Not Authenticated` and no customer account number
+4. Open Customer Profile and assert the unavailable placeholder is shown
 
----
-
-### TC-05: Tab Switching - Interaction Info And Customer Profile Are Mutually Exclusive
+### TC-05: Interaction Information and Customer Profile tabs are mutually exclusive
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Profile Assertion Data** | local file `test-data/profiles/10001.json` (`Olivia Carter`) |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
 
 **Steps:**
-1. Create a run, accept the invite, then `waitForProfile('Olivia Carter')`
-2. `openInteractionInformationTab()` -> assert `isInteractionInformationVisible() === true`, `isProfileVisible() === false`
-3. `openCustomerProfileTab()` -> assert `isProfileVisible() === true`, `isInteractionInformationVisible() === false`
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Unlock the workspace and accept the invite
+3. Open Interaction Information and assert profile panel is hidden
+4. Open Customer Profile, wait for `Olivia Carter`, and assert interaction panel is hidden
 
 ---
 
 ## Module D - Data Rendering Accuracy
 
-### TC-06: Transcript Renders In Submission Order (Baseline Check)
+### TC-06: Baseline transcript renders in submission order
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` (3 transcript messages in fixed order) |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` from `test-data/transcripts/happy-path.ts` (3 messages) |
 
 **Steps:**
-1. Create a run and accept the invite
-2. `waitForTranscriptCount(3)`
-3. Assert `getTranscriptMessages()` fully matches `payload.chatTranscript` including sender / timestamp / message for each row
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Unlock the workspace and accept the invite
+3. Wait for 3 transcript rows
+4. Assert rendered transcript equals `PAYLOAD_HAPPY_PATH.chatTranscript`
+
+### TC-07: Out-of-order timestamps still render in submission order
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` from `test-data/payloads/large-conversation.ts` |
+| **Transcript Data** | `LARGE_CONVERSATION_TRANSCRIPT` from `test-data/transcripts/large-conversation.ts` (60 messages) |
+| **Special Check** | compares rendered items at indexes `4` and `5`, where timestamps are intentionally out of order |
+
+**Steps:**
+1. POST `/api/testrun` with `PAYLOAD_LARGE_CONVERSATION`
+2. Unlock the workspace and accept the invite
+3. Wait for 60 transcript rows
+4. Assert rendered rows `4` and `5` equal `LARGE_CONVERSATION_TRANSCRIPT[4]` and `[5]`
+
+### TC-08: Account-specific transcript file is rendered when available
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | dynamic payload built inside the test |
+| **Transcript Source** | GET `/sampletranscription/10003.json` -> assigned to `expectedTranscript` |
+| **Interaction Data** | inline `interactionInformation` with account `10003`, `interactionId: 'CHAT-TRANSCRIPT-10003'`, journey `General Support`, queue `General` |
+
+**Steps:**
+1. GET `/sampletranscription/10003.json`
+2. Build an inline `TestRunPayload` using account `10003` and the fetched transcript
+3. POST `/api/testrun` with that payload
+4. Unlock the workspace and accept the invite
+5. Assert rendered transcript equals `expectedTranscript`
+
+### TC-09: Default transcript is used when no account-specific file exists
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | dynamic payload built inside the test |
+| **Transcript Source** | GET `/sampletranscription/10001.json` -> expect `404`, then GET `/sampletranscription/default.json` |
+| **Interaction Data** | inline `interactionInformation` with account `10001`, `interactionId: 'CHAT-TRANSCRIPT-DEFAULT-10001'`, journey `General Support`, queue `General` |
+
+**Steps:**
+1. GET `/sampletranscription/10001.json` and assert `404`
+2. GET `/sampletranscription/default.json` into `defaultTranscript`
+3. Build an inline `TestRunPayload` with account `10001` and `defaultTranscript`
+4. POST `/api/testrun`, unlock the workspace, and accept the invite
+5. Assert rendered transcript equals `defaultTranscript`
+
+### TC-10: Transaction list is truncated at 10 rows (Bug #5, account 10012)
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | inline payload built inside the test |
+| **Profile Assertion Data** | local file `test-data/profiles/10012.json` (`Ethan Perry`, account `10012`, 23 recent transactions) |
+| **Transcript Data** | inline transcript with 1 message: `{ sender: 'Customer', timestamp: '10:00:01', message: 'Hello' }` |
+| **Related Bug** | Bug #5 |
+
+**Steps:**
+1. Read `test-data/profiles/10012.json`
+2. Build an inline `TestRunPayload` for account `10012` with a single-message transcript
+3. POST `/api/testrun`, unlock the workspace, and accept the invite
+4. Open Customer Profile and wait for `Ethan Perry`
+5. Count `[data-testid^="transaction-row-"]` and compare with `profile.recentTransactions.length`
 
 ---
 
-### TC-07: Out-Of-Order Timestamps Still Render In Submission Order
+## Module E - Live Chat Composer
+
+### TC-11: Agent message timestamp is rendered as 00:xx:xx (Bug #3)
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BADGE_BUG_PAYLOAD` (`SAMPLE_TRANSCRIPT_47`, where messages 5 and 6 contain out-of-order timestamps) |
-| **Related Bug** | Bug #4 (transcript timestamps are out of order) |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Live Chat Input** | `Checking your account now.` |
+| **Related Bug** | Bug #3 |
 
 **Steps:**
-1. Create a run and accept the invite
-2. `waitForTranscriptCount(47)`
-3. Assert `rendered[4] === SAMPLE_TRANSCRIPT_47[4]`
-4. Assert `rendered[5] === SAMPLE_TRANSCRIPT_47[5]` to confirm the UI keeps submission order instead of re-sorting by time
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Unlock the workspace and accept the invite
+3. Send `Checking your account now.`
+4. Assert the appended agent message timestamp matches `/^00:\\d{2}:\\d{2}$/`
+
+### TC-12: Send button is disabled for empty input
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Input State** | cleared via `clearLiveChatInput()` |
+
+**Steps:**
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Unlock the workspace and accept the invite
+3. Clear the live chat input
+4. Assert send button is disabled
+
+### TC-13: Send button remains disabled for whitespace-only input
+
+| | |
+|---|---|
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Input State** | whitespace-only string `'   '` |
+
+**Steps:**
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Unlock the workspace and accept the invite
+3. Fill the input with `'   '`
+4. Assert send button is disabled
 
 ---
 
-### TC-08: Transaction List Stops At 10 Rows
+## Module F - Badge Count
+
+### TC-14: Badge count matches the large transcript count
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | GET `/sampleprofile/10012.json` -> `profile.recentTransactions.length === 23` |
-| **Related Bug** | Bug #5 (transaction list stops at 10 rows) |
-| **Status** | Verified on the hosted environment: the UI only renders the first 10 rows; the remaining 13 are not visible |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` from `test-data/payloads/large-conversation.ts` |
+| **Transcript Data** | `LARGE_CONVERSATION_TRANSCRIPT` (60 messages) |
 
 **Steps:**
-1. Create a run for account 10012 and accept the invite
-2. `openCustomerProfileTab()`, `waitForProfile(profile.customerName)`
-3. Assert `[data-testid^="transaction-row-"]` count === 23 <- **actual result: 10 rows are rendered (bug)**
+1. POST `/api/testrun` with `PAYLOAD_LARGE_CONVERSATION`
+2. Unlock the workspace and accept the invite
+3. Wait for 60 transcript rows
+4. Compare `getBadgeCount()` with rendered transcript count
 
----
-
-### TC-17: Account With A Dedicated Transcript File - Render Account-Specific Content
+### TC-15: Badge increments when live chat messages are appended
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | account 10003 -> GET `/sampletranscription/10003.json` returns 200 (47 messages, different from `default.json`) |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
+| **Live Chat Input** | `Reviewing your account now.` |
 
 **Steps:**
-1. GET `/sampletranscription/10003.json` -> `expectedTranscript` loaded dynamically, not hardcoded
-2. Create a run for account 10003 with `expectedTranscript`, then accept the invite
-3. `waitForTranscriptCount(expectedTranscript.length)`
-4. Assert `getTranscriptMessages()` fully matches `expectedTranscript`
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Unlock the workspace and accept the invite
+3. Assert starting badge count is 3
+4. Send `Reviewing your account now.`
+5. Assert badge count becomes `PAYLOAD_HAPPY_PATH.chatTranscript.length + 2`
 
----
-
-### TC-18: Account Without A Dedicated Transcript File - Fallback To `default.json`
+### TC-16: Badge remains stable across tab switching
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | account 10001 -> GET `/sampletranscription/10001.json` returns 404 |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_HAPPY_PATH` from `test-data/payloads/happy-path.ts` |
+| **Transcript Data** | `HAPPY_PATH_TRANSCRIPT` (3 messages) |
 
 **Steps:**
-1. GET `/sampletranscription/10001.json` -> assert `status === 404` to confirm no dedicated file exists
-2. GET `/sampletranscription/default.json` -> `expectedTranscript` (30 messages)
-3. Create a run for account 10001 with `expectedTranscript`, then accept the invite
-4. `waitForTranscriptCount(expectedTranscript.length)`
-5. Assert `getTranscriptMessages()` fully matches `expectedTranscript`
+1. POST `/api/testrun` with `PAYLOAD_HAPPY_PATH`
+2. Unlock the workspace and accept the invite
+3. Assert initial badge count is 3
+4. Switch to Customer Profile and back to Interaction Information
+5. Assert badge count remains unchanged
 
----
-
-## Module E - Live Chat Message Sending
-
-### TC-09: Agent Message Timestamp Format Is Incorrect
+### TC-17: Badge count continues to increment after a large transcript
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` |
-| **Related Bug** | Bug #3 (invalid agent message timestamp) |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | `PAYLOAD_LARGE_CONVERSATION` from `test-data/payloads/large-conversation.ts` |
+| **Transcript Data** | `LARGE_CONVERSATION_TRANSCRIPT` (60 messages) |
+| **Live Chat Input** | `Checking your account.` |
 
 **Steps:**
-1. Create a run and accept the invite
-2. `sendLiveChatMessage('Checking your account now.')`
-3. Assert `getLastAgentTimestamp()` matches `/^00:\d{2}:\d{2}$/`; if it passes, the bug is reproduced
-
----
-
-### TC-10: Send Button Is Disabled When Input Is Empty
-
-| | |
-|---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` |
-
-**Steps:**
-1. Create a run and accept the invite
-2. `clearLiveChatInput()` to empty the input
-3. Assert `isSendButtonDisabled() === true`
-
----
-
-### TC-11: Send Button Remains Disabled For Whitespace-Only Input (Regression)
-
-| | |
-|---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` |
-
-**Steps:**
-1. Create a run and accept the invite
-2. `fillChatInput('   ')` using 3 spaces
-3. Assert `isSendButtonDisabled() === true` to confirm input validation uses `trim()` instead of raw length
-
----
-
-## Module F - Badge Message Count
-
-### TC-12: Badge Count Matches The Large Transcript Count
-
-| | |
-|---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BADGE_BUG_PAYLOAD` (47 transcript messages) |
-| **Related Bug** | Bug #1 (badge count stops at 35) |
-
-**Steps:**
-1. Create a run and accept the invite
-2. `waitForTranscriptCount(47)`
-3. `renderedCount = getTranscriptCount()`
-4. Assert `getBadgeCount() === renderedCount` <- **actual result: badge stops at 35 (bug)**
-
----
-
-### TC-13: Live-Chat Messages Increment The Badge Count
-
-| | |
-|---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` (3 transcript messages) |
-
-**Steps:**
-1. Accept the invite, then `waitForTranscriptCount(3)`
-2. Assert `getBadgeCount() === 3`
-3. `before = getLiveChatCounts()`
-4. `sendLiveChatMessage('Reviewing your account now.')`
-5. `waitForEchoReply(before)`
-6. Assert `getBadgeCount() === 5` (`3 + 1 agent + 1 echo`)
-
----
-
-### TC-14: Badge Remains Stable After Tab Switching
-
-| | |
-|---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BILLING_DISPUTE_PAYLOAD` (3 transcript messages) |
-
-**Steps:**
-1. Accept the invite, then `waitForTranscriptCount(3)`
-2. Assert `getBadgeCount() === 3`
-3. `openCustomerProfileTab()`
-4. `openInteractionInformationTab()`
-5. Assert `getBadgeCount() === 3`; tab re-render must not reset the badge
-
----
-
-### TC-15: Badge Cap 35 - Live-Chat Threshold Stress Test
-
-| | |
-|---|---|
-| **File** | `02-edge-cases.spec.ts` |
-| **Preloaded Data** | `BADGE_LIVECHAT_PAYLOAD` (34 transcript messages; after sending 1 message the total crosses the 35 cap) |
-| **Related Bug** | Bug #1 extension: badge cap also applies to live-chat messages |
-| **Status** | Verified on the hosted environment |
-
-**Steps:**
-1. Accept the invite, then `waitForTranscriptCount(34)`
-2. `before = getLiveChatCounts()`
-3. `sendLiveChatMessage('Checking your account.')`
-4. `waitForEchoReply(before)`
-5. Assert `getTranscriptCount() === 36` (`34 + agent + echo`, rendering still works)
-6. Assert `getBadgeCount() === 35`; the badge stays at the cap and no longer increments
+1. POST `/api/testrun` with `PAYLOAD_LARGE_CONVERSATION`
+2. Unlock the workspace and accept the invite
+3. Wait for 60 transcript rows
+4. Send `Checking your account.`
+5. Assert transcript count and badge count both become `62`
 
 ---
 
 ## Module G - API Contract Validation
 
-### TC-16: Invalid Payload Returns A 4xx Error
+### TC-18: Invalid payload returns a 4xx validation error
 
 | | |
 |---|---|
-| **File** | `02-edge-cases.spec.ts` |
+| **File** | `tests/02-edge-cases.spec.ts` |
+| **Test Data** | inline invalid request body `{ interactionInformation: {} }` |
+| **API Expectation** | response status is `>= 400` and `< 500`, and body contains `message` |
 
 **Steps:**
-1. POST `/api/testrun({ interactionInformation: {} })` with all required fields missing
-2. Assert HTTP `status >= 400` and `< 500`
-3. Assert the response body contains a `message` field
+1. POST `/api/testrun` with `{ interactionInformation: {} }`
+2. Assert response status is a 4xx
+3. Assert response JSON contains `message`

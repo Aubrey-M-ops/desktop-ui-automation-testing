@@ -1,6 +1,8 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { createTestRun, type TestRunPayload } from '../src/api/testrun';
-import { BILLING_DISPUTE_PAYLOAD } from '../src/data/payloads';
+import { PAYLOAD_HAPPY_PATH } from '../test-data';
 import { DesktopPage } from '../src/pages/DesktopPage';
 
 const DESKTOP_BASE = process.env.DESKTOP_PATH ?? '/desktop';
@@ -15,10 +17,9 @@ interface ProfileFixture {
   recentTransactions: Array<{ date: string; description: string; amount: string }>;
 }
 
-async function fetchJson<T>(request: APIRequestContext, path: string): Promise<T> {
-  const response = await request.get(path);
-  expect(response.ok()).toBeTruthy();
-  return response.json() as Promise<T>;
+async function readLocalJson<T>(relativePath: string): Promise<T> {
+  const filePath = path.resolve(__dirname, '..', relativePath);
+  return JSON.parse(await readFile(filePath, 'utf8')) as T;
 }
 
 async function openAcceptedDesktop(
@@ -40,19 +41,19 @@ async function openAcceptedDesktop(
 
 test.describe('01 - Happy path', () => {
   test('TC-01 Billing Dispute - Full end-to-end flow (account 10001)', async ({ page, request }) => {
-    const expectedProfile = await fetchJson<ProfileFixture>(request, '/sampleprofile/10001.json');
-    const desktop = await openAcceptedDesktop(page, request, BILLING_DISPUTE_PAYLOAD);
+    const expectedProfile = await readLocalJson<ProfileFixture>('test-data/profiles/10001.json');
+    const desktop = await openAcceptedDesktop(page, request, PAYLOAD_HAPPY_PATH);
 
     await expect.poll(() => desktop.isWorkspaceGatedVisible()).toBe(false);
 
     const interactionInfo = await desktop.getInteractionInfo();
-    expect(interactionInfo.interactionId).toBe(BILLING_DISPUTE_PAYLOAD.interactionInformation.interactionId);
-    expect(interactionInfo.channel).toBe(BILLING_DISPUTE_PAYLOAD.interactionInformation.channel);
-    expect(interactionInfo.authenticationStatus).toBe(BILLING_DISPUTE_PAYLOAD.interactionInformation.authenticationStatus);
-    expect(interactionInfo.customerAccountNumber).toBe(BILLING_DISPUTE_PAYLOAD.interactionInformation.customerAccountNumber);
-    expect(interactionInfo.journeyName).toBe(BILLING_DISPUTE_PAYLOAD.interactionInformation.journeyName);
-    expect(interactionInfo.queueName).toBe(BILLING_DISPUTE_PAYLOAD.interactionInformation.queueName);
-    expect(interactionInfo.agentDesktopStatus).toBe(BILLING_DISPUTE_PAYLOAD.interactionInformation.agentDesktopStatus);
+    expect(interactionInfo.interactionId).toBe(PAYLOAD_HAPPY_PATH.interactionInformation.interactionId);
+    expect(interactionInfo.channel).toBe(PAYLOAD_HAPPY_PATH.interactionInformation.channel);
+    expect(interactionInfo.authenticationStatus).toBe(PAYLOAD_HAPPY_PATH.interactionInformation.authenticationStatus);
+    expect(interactionInfo.customerAccountNumber).toBe(PAYLOAD_HAPPY_PATH.interactionInformation.customerAccountNumber);
+    expect(interactionInfo.journeyName).toBe(PAYLOAD_HAPPY_PATH.interactionInformation.journeyName);
+    expect(interactionInfo.queueName).toBe(PAYLOAD_HAPPY_PATH.interactionInformation.queueName);
+    expect(interactionInfo.agentDesktopStatus).toBe(PAYLOAD_HAPPY_PATH.interactionInformation.agentDesktopStatus);
     expect(interactionInfo.startTime).toContain('10:30');
 
     await desktop.openCustomerProfileTab();
@@ -68,9 +69,9 @@ test.describe('01 - Happy path', () => {
     expect(profile.recentTransactions).toEqual(expectedProfile.recentTransactions);
 
     await desktop.openInteractionInformationTab();
-    await desktop.waitForTranscriptCount(BILLING_DISPUTE_PAYLOAD.chatTranscript.length);
-    await expect.poll(() => desktop.getTranscriptMessages()).toEqual(BILLING_DISPUTE_PAYLOAD.chatTranscript);
-    await expect.poll(() => desktop.getBadgeCount()).toBe(BILLING_DISPUTE_PAYLOAD.chatTranscript.length);
+    await desktop.waitForTranscriptCount(PAYLOAD_HAPPY_PATH.chatTranscript.length);
+    await expect.poll(() => desktop.getTranscriptMessages()).toEqual(PAYLOAD_HAPPY_PATH.chatTranscript);
+    await expect.poll(() => desktop.getBadgeCount()).toBe(PAYLOAD_HAPPY_PATH.chatTranscript.length);
 
     const beforeSend = await desktop.getTranscriptCount();
     await desktop.sendLiveChatMessage('I am reviewing your billing history now.');

@@ -1,0 +1,31 @@
+{
+    "visible": true,
+    "customerName": "Olivia Carter",
+    "accountNumber": "10001",
+    "customerTier": "Standard",
+    "accountStatus": "Active",
+    "lastPaymentDate": "2026-02-27",
+    "preferredLanguage": "English",
+    "recentTransactions": [
+        {
+            "date": "2026-03-08",
+            "description": "Payment Received",
+            "amount": "+58.75"
+        },
+        {
+            "date": "2026-03-03",
+            "description": "Service Charge",
+            "amount": "-16.25"
+        },
+        {
+            "date": "2026-02-24",
+            "description": "Loyalty Credit",
+            "amount": "+8.10"
+        }
+    ],
+    "accountHistoryNotes": [
+        "Profile auto-loaded from sample fixture 10001",
+        "Customer tier is Standard and current account status is Active",
+        "Preferred language on file: English"
+    ]
+}

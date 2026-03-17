@@ -1,0 +1,131 @@
+{
+    "visible": true,
+    "customerName": "Ethan Perry",
+    "accountNumber": "10012",
+    "customerTier": "Silver",
+    "accountStatus": "Active",
+    "lastPaymentDate": "2026-03-01",
+    "preferredLanguage": "French",
+    "recentTransactions": [
+        {
+            "date": "2026-03-10",
+            "description": "Payment Received",
+            "amount": "+25.35"
+        },
+        {
+            "date": "2026-03-09",
+            "description": "Service Charge",
+            "amount": "-32.70"
+        },
+        {
+            "date": "2026-03-08",
+            "description": "Loyalty Credit",
+            "amount": "-40.05"
+        },
+        {
+            "date": "2026-03-07",
+            "description": "Plan Adjustment",
+            "amount": "+47.40"
+        },
+        {
+            "date": "2026-03-06",
+            "description": "AutoPay Debit",
+            "amount": "-54.75"
+        },
+        {
+            "date": "2026-03-05",
+            "description": "Manual Payment",
+            "amount": "-62.10"
+        },
+        {
+            "date": "2026-03-04",
+            "description": "International Add-On",
+            "amount": "+69.45"
+        },
+        {
+            "date": "2026-03-03",
+            "description": "Usage Credit",
+            "amount": "-76.80"
+        },
+        {
+            "date": "2026-03-02",
+            "description": "Payment Received",
+            "amount": "-84.15"
+        },
+        {
+            "date": "2026-03-01",
+            "description": "Service Charge",
+            "amount": "+91.50"
+        },
+        {
+            "date": "2026-02-28",
+            "description": "Loyalty Credit",
+            "amount": "-18.00"
+        },
+        {
+            "date": "2026-02-27",
+            "description": "Plan Adjustment",
+            "amount": "-25.35"
+        },
+        {
+            "date": "2026-02-26",
+            "description": "AutoPay Debit",
+            "amount": "+32.70"
+        },
+        {
+            "date": "2026-02-25",
+            "description": "Manual Payment",
+            "amount": "-40.05"
+        },
+        {
+            "date": "2026-02-24",
+            "description": "International Add-On",
+            "amount": "-47.40"
+        },
+        {
+            "date": "2026-02-23",
+            "description": "Usage Credit",
+            "amount": "+54.75"
+        },
+        {
+            "date": "2026-02-22",
+            "description": "Payment Received",
+            "amount": "-62.10"
+        },
+        {
+            "date": "2026-02-21",
+            "description": "Service Charge",
+            "amount": "-69.45"
+        },
+        {
+            "date": "2026-02-20",
+            "description": "Loyalty Credit",
+            "amount": "+76.80"
+        },
+        {
+            "date": "2026-02-19",
+            "description": "Plan Adjustment",
+            "amount": "-84.15"
+        },
+        {
+            "date": "2026-02-18",
+            "description": "AutoPay Debit",
+            "amount": "-91.50"
+        },
+        {
+            "date": "2026-02-17",
+            "description": "Manual Payment",
+            "amount": "+18.00"
+        },
+        {
+            "date": "2026-02-16",
+            "description": "International Add-On",
+            "amount": "-25.35"
+        }
+    ],
+    "accountHistoryNotes": [
+        "Profile auto-loaded from sample fixture 10012",
+        "Customer tier is Silver and current account status is Active",
+        "Preferred language on file: French"
+    ]
+}

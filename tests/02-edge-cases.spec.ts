@@ -1,13 +1,13 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { createTestRun, type TestRunPayload, type TranscriptMessage } from '../src/api/testrun';
 import {
-  BADGE_BUG_PAYLOAD,
-  BADGE_LIVECHAT_PAYLOAD,
-  BILLING_DISPUTE_PAYLOAD,
-  SAMPLE_TRANSCRIPT_47,
-  TRANSCRIPT_34,
-  UNAUTHENTICATED_PAYLOAD,
-} from '../src/data/payloads';
+  LARGE_CONVERSATION_TRANSCRIPT,
+  PAYLOAD_HAPPY_PATH,
+  PAYLOAD_LARGE_CONVERSATION,
+  PAYLOAD_UNAUTHENTICATED,
+} from '../test-data';
 import { DesktopPage } from '../src/pages/DesktopPage';
 
 const DESKTOP_BASE = process.env.DESKTOP_PATH ?? '/desktop';
@@ -21,6 +21,11 @@ async function fetchJson<T>(request: APIRequestContext, path: string): Promise<T
   const response = await request.get(path);
   expect(response.ok()).toBeTruthy();
   return response.json() as Promise<T>;
+}
+
+async function readLocalJson<T>(relativePath: string): Promise<T> {
+  const filePath = path.resolve(__dirname, '..', relativePath);
+  return JSON.parse(await readFile(filePath, 'utf8')) as T;
 }
 
 async function openDesktopWithRun(
@@ -43,7 +48,7 @@ async function readyAndAccept(desktop: DesktopPage) {
 test.describe('02 - Edge cases', () => {
   test.describe('B. Entry flow and agent state', () => {
     test('TC-02 Chat invite appears only when agent status is Ready', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await expect.poll(() => desktop.isChatInviteVisible()).toBe(false);
       await desktop.setAgentStatus('Offline');
@@ -55,7 +60,7 @@ test.describe('02 - Edge cases', () => {
     });
 
     test('TC-03 Offline to Not Ready unexpectedly triggers the chat invite (Bug #6)', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await desktop.setAgentStatus('Offline');
       await expect.poll(() => desktop.isChatInviteVisible()).toBe(false);
@@ -67,7 +72,7 @@ test.describe('02 - Edge cases', () => {
 
   test.describe('C. Panel visibility and tab navigation', () => {
     test('TC-04 Unauthenticated interaction shows the profile placeholder after unlock', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, UNAUTHENTICATED_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_UNAUTHENTICATED);
 
       await desktop.waitForWorkspaceGated();
       await readyAndAccept(desktop);
@@ -82,8 +87,8 @@ test.describe('02 - Edge cases', () => {
     });
 
     test('TC-05 Interaction Information and Customer Profile tabs are mutually exclusive', async ({ page, request }) => {
-      const profile = await fetchJson<ProfileFixture>(request, '/sampleprofile/10001.json');
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const profile = await readLocalJson<ProfileFixture>('test-data/profiles/10001.json');
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
 
@@ -100,22 +105,22 @@ test.describe('02 - Edge cases', () => {
 
   test.describe('D. Data rendering accuracy', () => {
     test('TC-06 Baseline transcript renders in submission order', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
-      await desktop.waitForTranscriptCount(BILLING_DISPUTE_PAYLOAD.chatTranscript.length);
-      await expect.poll(() => desktop.getTranscriptMessages()).toEqual(BILLING_DISPUTE_PAYLOAD.chatTranscript);
+      await desktop.waitForTranscriptCount(PAYLOAD_HAPPY_PATH.chatTranscript.length);
+      await expect.poll(() => desktop.getTranscriptMessages()).toEqual(PAYLOAD_HAPPY_PATH.chatTranscript);
     });
 
     test('TC-07 Out-of-order timestamps still render in submission order', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BADGE_BUG_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_LARGE_CONVERSATION);
 
       await readyAndAccept(desktop);
-      await desktop.waitForTranscriptCount(SAMPLE_TRANSCRIPT_47.length);
+      await desktop.waitForTranscriptCount(LARGE_CONVERSATION_TRANSCRIPT.length);
 
       const rendered = await desktop.getTranscriptMessages();
-      expect(rendered[4]).toEqual(SAMPLE_TRANSCRIPT_47[4]);
-      expect(rendered[5]).toEqual(SAMPLE_TRANSCRIPT_47[5]);
+      expect(rendered[4]).toEqual(LARGE_CONVERSATION_TRANSCRIPT[4]);
+      expect(rendered[5]).toEqual(LARGE_CONVERSATION_TRANSCRIPT[5]);
     });
 
     test('TC-08 Account-specific transcript file is rendered when available', async ({ page, request }) => {
@@ -169,7 +174,7 @@ test.describe('02 - Edge cases', () => {
 
     test('TC-10 Transaction list is truncated at 10 rows (Bug #5, account 10012)', async ({ page, request }) => {
       const account = '10012';
-      const profile = await fetchJson<ProfileFixture>(request, `/sampleprofile/${account}.json`);
+      const profile = await readLocalJson<ProfileFixture>('test-data/profiles/10012.json');
       const payload: TestRunPayload = {
         interactionInformation: {
           interactionId: 'CHAT-TX-TRUNC',
@@ -196,7 +201,7 @@ test.describe('02 - Edge cases', () => {
 
   test.describe('E. Live chat composer', () => {
     test('TC-11 Agent message timestamp is rendered as 00:xx:xx (Bug #3)', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
       const beforeSend = await desktop.getTranscriptCount();
@@ -210,7 +215,7 @@ test.describe('02 - Edge cases', () => {
     });
 
     test('TC-12 Send button is disabled for empty input', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
       await desktop.clearLiveChatInput();
@@ -218,7 +223,7 @@ test.describe('02 - Edge cases', () => {
     });
 
     test('TC-13 Send button remains disabled for whitespace-only input', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
       await desktop.fillChatInput('   ');
@@ -228,36 +233,36 @@ test.describe('02 - Edge cases', () => {
 
   test.describe('F. Badge count', () => {
     test('TC-14 Badge count matches the large transcript count', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BADGE_BUG_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_LARGE_CONVERSATION);
 
       await readyAndAccept(desktop);
-      await desktop.waitForTranscriptCount(SAMPLE_TRANSCRIPT_47.length);
+      await desktop.waitForTranscriptCount(LARGE_CONVERSATION_TRANSCRIPT.length);
 
       const renderedCount = await desktop.getTranscriptCount();
       await expect.poll(() => desktop.getBadgeCount()).toBe(renderedCount);
     });
 
     test('TC-15 Badge increments when live chat messages are appended', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
-      await desktop.waitForTranscriptCount(BILLING_DISPUTE_PAYLOAD.chatTranscript.length);
-      await expect.poll(() => desktop.getBadgeCount()).toBe(BILLING_DISPUTE_PAYLOAD.chatTranscript.length);
+      await desktop.waitForTranscriptCount(PAYLOAD_HAPPY_PATH.chatTranscript.length);
+      await expect.poll(() => desktop.getBadgeCount()).toBe(PAYLOAD_HAPPY_PATH.chatTranscript.length);
 
       const beforeSend = await desktop.getTranscriptCount();
       await desktop.sendLiveChatMessage('Reviewing your account now.');
       await desktop.waitForTranscriptCount(beforeSend + 2);
 
-      await expect.poll(() => desktop.getBadgeCount()).toBe(BILLING_DISPUTE_PAYLOAD.chatTranscript.length + 2);
+      await expect.poll(() => desktop.getBadgeCount()).toBe(PAYLOAD_HAPPY_PATH.chatTranscript.length + 2);
     });
 
     test('TC-16 Badge remains stable across tab switching', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BILLING_DISPUTE_PAYLOAD);
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_HAPPY_PATH);
 
       await readyAndAccept(desktop);
-      await desktop.waitForTranscriptCount(BILLING_DISPUTE_PAYLOAD.chatTranscript.length);
+      await desktop.waitForTranscriptCount(PAYLOAD_HAPPY_PATH.chatTranscript.length);
 
-      const expectedBadge = BILLING_DISPUTE_PAYLOAD.chatTranscript.length;
+      const expectedBadge = PAYLOAD_HAPPY_PATH.chatTranscript.length;
       await expect.poll(() => desktop.getBadgeCount()).toBe(expectedBadge);
 
       await desktop.openCustomerProfileTab();
@@ -266,19 +271,19 @@ test.describe('02 - Edge cases', () => {
       await expect.poll(() => desktop.getBadgeCount()).toBe(expectedBadge);
     });
 
-    test('TC-17 Badge caps at 35 when live chat crosses the threshold', async ({ page, request }) => {
-      const desktop = await openDesktopWithRun(page, request, BADGE_LIVECHAT_PAYLOAD);
+    test('TC-17 Badge count continues to increment after a large transcript', async ({ page, request }) => {
+      const desktop = await openDesktopWithRun(page, request, PAYLOAD_LARGE_CONVERSATION);
 
       await readyAndAccept(desktop);
-      await desktop.waitForTranscriptCount(TRANSCRIPT_34.length);
+      await desktop.waitForTranscriptCount(LARGE_CONVERSATION_TRANSCRIPT.length);
 
       await desktop.sendLiveChatMessage('Checking your account.');
-      await desktop.waitForTranscriptCount(TRANSCRIPT_34.length + 2);
+      await desktop.waitForTranscriptCount(LARGE_CONVERSATION_TRANSCRIPT.length + 2);
 
       const renderedCount = await desktop.getTranscriptCount();
       const badge = await desktop.getBadgeCount();
-      expect(renderedCount).toBe(TRANSCRIPT_34.length + 2);
-      expect(badge).toBe(35);
+      expect(renderedCount).toBe(LARGE_CONVERSATION_TRANSCRIPT.length + 2);
+      expect(badge).toBe(LARGE_CONVERSATION_TRANSCRIPT.length + 2);
     });
   });
 
