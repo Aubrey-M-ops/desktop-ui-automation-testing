@@ -6,7 +6,7 @@ Automated end-to-end test suite for the agent desktop web application, built wit
 
 Target: `https://takehome-desktop.d.tekvisionflow.com`
 
-**Last Updated:** 2026-03-17 (After deduplication)
+**Last Updated:** 2026-03-17
 
 ---
 
@@ -25,19 +25,7 @@ Target: `https://takehome-desktop.d.tekvisionflow.com`
 | `02-edge-cases.spec.ts` | I — Agent Message Timestamp Accuracy | TC-26 |
 | `03-xss-verification.spec.ts` | J — Security Verification | TC-27 – TC-31 |
 
-**Total: 31 test cases across 2 spec files** (reduced from 35 after removing duplicates).
-
----
-
-## Deduplication Summary
-
-Removed 4 duplicate test cases:
-- **Old TC-13**: "Agent message timestamp format" → Covered by TC-26
-- **Old TC-17**: "Special characters and emojis" → Covered by TC-28 and TC-30
-- **Old TC-28**: "Echo message content non-empty" → Covered by TC-25
-- **Old TC-30**: "Multiple messages sequential timestamps" → Covered by TC-26
-
-All remaining test cases have been renumbered sequentially.
+**Total: 31 test cases across 2 spec files.**
 
 ---
 

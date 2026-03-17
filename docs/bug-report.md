@@ -1,9 +1,9 @@
 # Bug Report
 
-Automation run date: 2026-03-17 (Updated after test deduplication)
+Automation run date: 2026-03-17
 
 Test run summary:
-- Total: 31 tests (reduced from 35 after removing duplicates)
+- Total: 31 tests
 - Passed: 24
 - Failed: 7
 - Failed tests mapped to 5 distinct desktop bugs
@@ -128,7 +128,7 @@ Update API validation to allow empty `chatTranscript` arrays. An empty conversat
 
 ## Bug #5: Message length hard limit of 1000 characters
 
-**Severity:** Low-Medium  
+**Severity:** Low  
 
 **Failing tests:**
 - `TC-31: Very long message with special characters`

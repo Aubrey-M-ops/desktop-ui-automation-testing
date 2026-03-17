@@ -30,10 +30,6 @@
 ### Installation
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd desktop-auto-testing
-
 # Install dependencies
 npm install
 
@@ -150,46 +146,6 @@ DESKTOP_PATH=/desktopv2 npx playwright test tests/02-edge-cases.spec.ts -g "TC-1
 | Security | 5 | ✅ 4 | ❌ 1 |
 
 📄 **Detailed results:** [docs/test-report.md](./docs/test-report.md)
-
----
-
-## 🎯 Project Highlights
-
-This testing framework demonstrates:
-
-✅ **Clear and Reliable Automation**
-- Deterministic test runs using API-created test data
-- Robust Page Object Model isolating UI interaction logic
-- Built-in retry mechanisms for API rate limiting
-- Comprehensive waiting strategies (no hardcoded timeouts)
-
-✅ **Sensible Assertions**  
-- Dynamic assertion baselines fetched from `/sampleprofile` and `/sampletranscription` APIs
-- No hardcoded expected values in test code
-- Separate test data fixtures for maintainability
-- Validates both UI rendering and API contract compliance
-
-✅ **Practical Test Coverage**
-- **31 test cases** across 10 functional modules
-- Full end-to-end workflow validation
-- Edge case coverage (empty inputs, boundary values, concurrent operations)
-- Security testing (XSS, SQL injection, Unicode handling)
-
-✅ **Real Defect Identification**
-- **5 bugs discovered** with clear reproduction steps
-- Each bug mapped to failing test cases
-- Screenshots and traces captured for all failures
-
-✅ **Verifiable Bug Fixes**
-- Run against `/desktop` to reproduce bugs
-- Run against `/desktopv2` to verify fixes
-- Single environment variable toggles between versions
-- Updated reports reflect fix status
-
-✅ **Clear Documentation**
-- Comprehensive test case descriptions
-- Detailed bug reproduction steps  
-- Architecture and design decisions documented
 
 ---
 
@@ -341,22 +297,7 @@ expect(profile.customerName).toBe('Olivia Carter');
 
 ---
 
-## 🎓 Evaluation Criteria Addressed
-
-| Criterion | How This Project Addresses It |
-|-----------|-------------------------------|
-| **Clear and reliable automation** | ✅ Deterministic test runs, Page Object Model, robust waiting strategies, retry logic |
-| **Sensible assertions** | ✅ Dynamic baselines from API, no hardcoded expected values, comprehensive validation |
-| **Practical test coverage** | ✅ 31 tests across 10 modules, E2E + edge cases + security, 77% pass rate |
-| **Ability to identify real defects** | ✅ 5 bugs discovered with screenshots, traces, and clear reproduction steps |
-| **Ability to rerun automation once defects are fixed** | ✅ `DESKTOP_PATH=/desktopv2` toggles to fixed version, Bug #3 verified as fixed |
-| **Clarity of explanation** | ✅ This README, test-cases.md, bug-report.md, test-report.md with clear structure |
-
----
-
-## 🤝 Contributing
-
-This is a take-home assignment submission. However, if reviewing:
+## 🤝 Reviewing
 
 1. **Run the tests** to verify reproducibility
 2. **Check the bug report** for clear reproduction steps
@@ -364,23 +305,3 @@ This is a take-home assignment submission. However, if reviewing:
 4. **Try the desktopv2 verification** to confirm fix detection
 
 ---
-
-## 📝 License
-
-This project was created as part of a technical assessment.
-
----
-
-## 👤 Author
-
-**Project:** Desktop Automation Testing Framework  
-**Created:** March 2026  
-**Tech Stack:** Playwright + TypeScript  
-**Test Count:** 31 test cases  
-**Bugs Found:** 5 defects with reproduction steps
-
----
-
-**Ready to run?** Start with: `npm install && npx playwright install chromium && npx playwright test`
-
-For questions or issues, see the [Bug Report](./docs/bug-report.md) and [Test Cases](./docs/test-cases.md) for details.

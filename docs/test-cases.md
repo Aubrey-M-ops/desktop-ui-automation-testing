@@ -1,6 +1,8 @@
 # Test Cases
 
-**Total: 31 test cases** across 10 modules (updated 2026-03-17).
+
+> **Total: 31 test cases** across 10 modules (updated 2026-03-17).
+
 ---
 
 ## Module A - Happy Path
