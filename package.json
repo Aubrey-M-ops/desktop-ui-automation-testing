@@ -4,7 +4,6 @@
   "description": "Playwright automation tests for agent desktop application",
   "scripts": {
     "test": "npx playwright test",
-    "test:badge-fix": "DESKTOP_PATH=/desktopv2 npx playwright test tests/02-badge-bug.spec.ts",
     "test:report": "npx playwright show-report"
   },
   "devDependencies": {
