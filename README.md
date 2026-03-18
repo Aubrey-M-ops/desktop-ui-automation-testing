@@ -162,17 +162,19 @@ desktop-auto-testing/
 │       └── selectors.ts         # Centralized data-testid mappings
 │
 ├── test-data/
-│   ├── payloads/                # Reusable test payloads
+│   ├── payloads/                # Static payload fixtures (one file per scenario)
 │   │   ├── happy-path.ts
 │   │   ├── large-conversation.ts
-│   │   └── unauthenticated.ts
-│   ├── profiles/                # Expected profile fixtures (10001-10050)
-│   │   ├── 10001.json
-│   │   ├── 10012.json
-│   │   └── ...
-│   └── transcripts/             # Chat transcript fixtures
-│       ├── happy-path.ts
-│       └── large-conversation.ts
+│   │   ├── unauthenticated.ts
+│   │   ├── edge-cases.ts
+│   │   ├── security.ts          # XSS / SQL injection / Unicode payloads
+│   │   └── index.ts             # Barrel re-export
+│   ├── builders/                # Factory functions for dynamic payloads
+│   │   └── index.ts             # buildAuthenticatedPayload, buildAccountTranscriptPayload, …
+│   └── profiles/                # Expected profile fixtures (co-located JSON + types)
+│       ├── 10001.json
+│       ├── 10012.json
+│       └── index.ts             # Typed exports + ProfileFixture interface
 │
 ├── tests/
 │   ├── 01-happy-path.spec.ts    # Module A: Full E2E workflow
@@ -244,18 +246,49 @@ await page.goto(`/desktop/${runId}`);
 
 No shared state, no test interdependencies, fully parallelizable.
 
-### Dynamic Assertion Baselines
+### Static Fixture Baselines
 
-Expected values are fetched from the backend at runtime:
+Expected values live in co-located JSON fixtures, not hardcoded inline:
 
 ```typescript
-// Don't hardcode expected profile
-const expectedProfile = await fetchJson(request, `/sampleprofile/${account}.json`);
+// test-data/profiles/index.ts — typed, version-controlled
+import { profile10001 } from '@test-data/profiles';
 
-// Assert against live data
-const renderedProfile = await desktop.getProfileData();
-expect(renderedProfile).toEqual(expectedProfile);
+const profile = await desktop.getProfileData();
+expect(profile.customerName).toBe(profile10001.customerName);
+expect(profile.recentTransactions).toEqual(profile10001.recentTransactions);
 ```
+
+Fixtures update in one place; every test that references them stays in sync automatically.
+
+### Centralized Assertion Fields
+
+Field lists that drive `for...of` assertion loops are defined once in `src/config/assertion-fields.ts`:
+
+```typescript
+// assertion-fields.ts
+export const ASSERTION_FIELDS = {
+  interactionInfoExact: ['interactionId', 'channel', 'authenticationStatus', ...],
+  profileExact: ['customerName', 'customerTier', 'accountStatus', ...],
+};
+
+// In tests — adding a new field to assert requires a single-line change
+for (const field of ASSERTION_FIELDS.profileExact) {
+  expect(profile[field]).toBe(expectedProfile[field]);
+}
+```
+
+### Layered Test Data
+
+`test-data/` is split into three purpose-specific layers:
+
+| Layer | Path | Contents |
+|-------|------|----------|
+| **Payloads** | `test-data/payloads/` | Static `TestRunPayload` fixtures per scenario |
+| **Builders** | `test-data/builders/` | Factory functions for parameterized payloads |
+| **Profiles** | `test-data/profiles/` | Expected UI state (JSON + typed exports) |
+
+All layers are exposed through a single barrel — `import { ... } from '@test-data'` — with `@test-data/*` sub-path aliases for targeted imports.
 
 ### Robust Waiting Strategies
 
@@ -292,7 +325,7 @@ Tests stay clean and readable:
 await desktop.setAgentStatusReady();
 await desktop.acceptChatInvite();
 const profile = await desktop.getProfileData();
-expect(profile.customerName).toBe('Olivia Carter');
+expect(profile.customerName).toBe(profile10001.customerName);
 ```
 
 ---
